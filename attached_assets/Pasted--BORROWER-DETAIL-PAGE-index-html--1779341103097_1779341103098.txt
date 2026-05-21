@@ -1,0 +1,173 @@
+/* ============================================
+   BORROWER DETAIL PAGE (index.html)
+   ============================================ */
+
+<div id="borrowerDetail" style="display:none;">
+
+  <h2>Borrower Details</h2>
+
+  <div id="borrowerInfo" class="detail-card"></div>
+
+  <button onclick="showAddPaymentForm(currentBorrowerId)" class="primary-btn">Add Payment</button>
+  <button onclick="showEditBorrowerForm(currentBorrowerId)" class="secondary-btn">Edit Borrower</button>
+  <button onclick="deleteBorrower(currentBorrowerId)" class="delete-btn">Delete Borrower</button>
+  <button onclick="window.print()" class="print-btn">Print Record</button>
+
+  <h3>Payment History</h3>
+
+  <table id="paymentHistoryTable" class="excel-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Prev Balance</th>
+        <th>Interest</th>
+        <th>Principal</th>
+        <th>Total Collected</th>
+        <th>New Balance</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="paymentHistoryBody"></tbody>
+  </table>
+
+  <button onclick="renderBorrowerList()" class="back-btn">Back to List</button>
+
+</div>
+
+
+
+/* ============================================
+   BORROWER DETAIL JS (script.js)
+   ============================================ */
+
+function renderBorrowerDetail(borrowerId) {
+  const borrower = borrowers.find(b => b.id === borrowerId);
+  if (!borrower) return;
+
+  currentBorrowerId = borrowerId;
+
+  document.getElementById("borrowerDetail").style.display = "block";
+  document.getElementById("borrowerList").style.display = "none";
+  document.getElementById("newBorrowerForm").style.display = "none";
+  document.getElementById("editBorrowerForm").style.display = "none";
+  document.getElementById("addPaymentForm").style.display = "none";
+
+  const info = `
+    <div>
+      <strong>Name:</strong> ${borrower.name}<br>
+      <strong>Starting Balance:</strong> MOP ${borrower.startingBalance}<br>
+      <strong>Current Balance:</strong> MOP ${borrower.currentBalance}<br>
+      <strong>Interest Rate:</strong> ${borrower.interestRate}%<br>
+      <strong>Date Borrowed:</strong> ${borrower.dateBorrowed}<br>
+      <strong>Notes:</strong> ${borrower.notes || "None"}
+    </div>
+  `;
+
+  document.getElementById("borrowerInfo").innerHTML = info;
+
+  renderPaymentHistory(borrower);
+}
+
+
+
+/* ============================================
+   PAYMENT HISTORY TABLE JS (script.js)
+   ============================================ */
+
+function renderPaymentHistory(borrower) {
+  const tbody = document.getElementById("paymentHistoryBody");
+  tbody.innerHTML = "";
+
+  if (borrower.payments.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="8" style="text-align:center;">No payments recorded yet.</td></tr>
+    `;
+    return;
+  }
+
+  borrower.payments.forEach(payment => {
+    const typeLabel = payment.repayment > 0
+      ? "Principal + Interest"
+      : "Interest‑Only";
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${payment.date}</td>
+      <td>${typeLabel}</td>
+      <td>MOP ${payment.previousBalance}</td>
+      <td>MOP ${payment.interest}</td>
+      <td>MOP ${payment.repayment}</td>
+      <td>MOP ${payment.totalCollected}</td>
+      <td>MOP ${payment.newBalance}</td>
+      <td>
+        <button class="delete-btn" onclick="deletePayment(${borrower.id}, ${payment.id})">
+          Delete
+        </button>
+      </td>
+    `;
+
+    tbody.appendChild(row);
+  });
+}
+
+
+
+/* ============================================
+   CSS FOR BORROWER DETAIL + EXCEL TABLE (style.css)
+   ============================================ */
+
+.detail-card {
+  background: #f0f0f0;
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.primary-btn,
+.secondary-btn,
+.delete-btn,
+.print-btn,
+.back-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.primary-btn { background: #007bff; }
+.secondary-btn { background: #6c757d; }
+.delete-btn { background: #d9534f; }
+.print-btn { background: #5cb85c; }
+.back-btn { background: #444; }
+
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.excel-table th,
+.excel-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+.excel-table th {
+  background: #e6e6e6;
+  font-weight: bold;
+}
+
+.excel-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.excel-table tr:hover {
+  background: #dfefff;
+}
