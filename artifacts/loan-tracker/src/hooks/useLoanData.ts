@@ -8,7 +8,7 @@ export interface Payment {
   repayment: number;
   totalCollected: number;
   newBalance: number;
-  type?: "interest-only";
+  type: "regular" | "interest-only";
 }
 
 export interface Borrower {
@@ -60,16 +60,18 @@ export function useLoanData() {
     saveBorrowers(borrowers.map(b => b.id === id ? { ...b, ...updates } : b));
   }, [borrowers, saveBorrowers]);
 
-  const addPayment = useCallback((borrowerId: string, paymentData: { date: string; repayment: number; interestOnly?: boolean }) => {
+  const addPayment = useCallback((borrowerId: string, paymentData: { date: string; repayment: number; interest?: number }) => {
     const borrowerIndex = borrowers.findIndex(b => b.id === borrowerId);
     if (borrowerIndex === -1) return null;
 
     const borrower = borrowers[borrowerIndex];
     const previousBalance = borrower.currentBalance;
-    const interest = previousBalance * (borrower.interestRate / 100);
-    const isInterestOnly = !!paymentData.interestOnly;
-    const repayment = isInterestOnly ? 0 : paymentData.repayment;
-    const newBalance = isInterestOnly ? previousBalance : previousBalance - repayment;
+    const interest = paymentData.interest !== undefined
+      ? paymentData.interest
+      : previousBalance * (borrower.interestRate / 100);
+    const repayment = paymentData.repayment;
+    const isInterestOnly = repayment === 0;
+    const newBalance = previousBalance - repayment;
     const totalCollected = repayment + interest;
 
     const payment: Payment = {
@@ -80,7 +82,7 @@ export function useLoanData() {
       repayment,
       totalCollected,
       newBalance,
-      ...(isInterestOnly ? { type: "interest-only" as const } : {})
+      type: isInterestOnly ? "interest-only" : "regular",
     };
 
     const updatedBorrower = {

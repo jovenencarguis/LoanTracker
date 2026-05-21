@@ -136,23 +136,32 @@ export function BorrowerDetail() {
                     </Button>
                   </div>
                   {payment.type === "interest-only" ? (
-                    <div className="text-sm leading-relaxed space-y-1">
-                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mb-1">Interest Only</span>
-                      <div className="text-muted-foreground">
-                        Paid <span className="text-foreground font-medium">{formatMoney(payment.interest)}</span> interest — principal <span className="text-primary font-serif font-medium">{formatMoney(payment.newBalance)}</span> unchanged
+                    <div className="text-sm leading-relaxed space-y-1.5">
+                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Interest Only</span>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-1">
+                        <span className="text-muted-foreground">Interest paid</span>
+                        <span className="text-right font-medium">{formatMoney(payment.interest)}</span>
+                        <span className="text-muted-foreground">Principal</span>
+                        <span className="text-right">MOP 0 <span className="text-muted-foreground">(unchanged)</span></span>
+                        <span className="text-muted-foreground">Total collected</span>
+                        <span className="text-right font-medium">{formatMoney(payment.totalCollected)}</span>
+                        <span className="text-muted-foreground">Balance</span>
+                        <span className="text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
-                      Balance {formatMoney(payment.previousBalance)} 
-                      <span className="mx-1 text-border">→</span> 
-                      interest {formatMoney(payment.interest)} 
-                      <span className="mx-1 text-border">→</span> 
-                      repay <span className="text-foreground font-medium">{formatMoney(payment.repayment)}</span> 
-                      <span className="mx-1 text-border">→</span> 
-                      collect {formatMoney(payment.totalCollected)} 
-                      <span className="mx-1 text-border">→</span> 
-                      balance = <span className="text-primary font-serif font-medium">{formatMoney(payment.newBalance)}</span>
+                    <div className="text-sm leading-relaxed space-y-1.5">
+                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-full">Principal + Interest</span>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-1">
+                        <span className="text-muted-foreground">Interest paid</span>
+                        <span className="text-right font-medium">{formatMoney(payment.interest)}</span>
+                        <span className="text-muted-foreground">Principal paid</span>
+                        <span className="text-right font-medium text-foreground">{formatMoney(payment.repayment)}</span>
+                        <span className="text-muted-foreground">Total collected</span>
+                        <span className="text-right font-medium">{formatMoney(payment.totalCollected)}</span>
+                        <span className="text-muted-foreground">New balance</span>
+                        <span className="text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</span>
+                      </div>
                     </div>
                   )}
                 </CardContent>
