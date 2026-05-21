@@ -21,7 +21,7 @@ import {
 export function BorrowerDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { getBorrower, isLoaded, deleteBorrower, deletePayment } = useLoanData();
+  const { getBorrower, isLoaded, addPayment, deleteBorrower, deletePayment } = useLoanData();
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
   const [showDeleteBorrower, setShowDeleteBorrower] = useState(false);
@@ -210,6 +210,7 @@ export function BorrowerDetail() {
         borrower={borrower}
         open={showAddPayment}
         onOpenChange={setShowAddPayment}
+        addPayment={addPayment}
       />
 
       <EditBorrowerForm

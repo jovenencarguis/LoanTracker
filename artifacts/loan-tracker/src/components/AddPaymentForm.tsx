@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useLoanData, type Borrower } from "@/hooks/useLoanData";
+import { type Borrower } from "@/hooks/useLoanData";
 import { formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -36,12 +36,13 @@ export function AddPaymentForm({
   borrower,
   open,
   onOpenChange,
+  addPayment,
 }: {
   borrower: Borrower;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  addPayment: (borrowerId: string, data: { date: string; repayment: number; interest?: number }) => void;
 }) {
-  const { addPayment } = useLoanData();
 
   const autoInterest = borrower.currentBalance * (borrower.interestRate / 100);
 
