@@ -128,7 +128,6 @@ export function BorrowerDetail() {
               <tr className="bg-secondary/60 text-left">
                 <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">#</th>
                 <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Date</th>
-                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Type</th>
                 <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Prev Balance</th>
                 <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Interest</th>
                 <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Principal</th>
@@ -142,9 +141,6 @@ export function BorrowerDetail() {
               <tr className="border-b border-border/50 bg-secondary/20">
                 <td className="px-3 py-2.5 text-muted-foreground">0</td>
                 <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{formatDate(borrower.dateBorrowed)}</td>
-                <td className="px-3 py-2.5">
-                  <span className="text-xs font-medium text-muted-foreground bg-border/60 px-2 py-0.5 rounded-full whitespace-nowrap">Initial Loan</span>
-                </td>
                 <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
                 <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
                 <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
@@ -156,7 +152,7 @@ export function BorrowerDetail() {
               {/* Payment rows */}
               {borrower.payments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground text-sm">
                     No payments recorded yet.
                   </td>
                 </tr>
@@ -171,23 +167,12 @@ export function BorrowerDetail() {
                     >
                       <td className="px-3 py-2.5 text-muted-foreground">{i + 1}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(payment.date)}</td>
-                      <td className="px-3 py-2.5">
-                        {isInterestOnly ? (
-                          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            Interest Only
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-primary/80 bg-primary/5 border border-primary/15 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            Principal + Interest
-                          </span>
-                        )}
-                      </td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.previousBalance)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs text-destructive">+{formatMoney(payment.interest)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.interest)}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs">
                         {isInterestOnly
                           ? <span className="text-muted-foreground">—</span>
-                          : <span className="text-foreground">{formatMoney(payment.repayment)}</span>
+                          : formatMoney(payment.repayment)
                         }
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs font-medium">{formatMoney(payment.totalCollected)}</td>
@@ -211,7 +196,7 @@ export function BorrowerDetail() {
               {/* Settled row */}
               {borrower.currentBalance === 0 && borrower.payments.length > 0 && (
                 <tr className="bg-green-50/50">
-                  <td colSpan={9} className="px-3 py-3 text-center text-sm font-medium text-green-700">
+                  <td colSpan={8} className="px-3 py-3 text-center text-sm font-medium text-green-700">
                     Loan fully settled
                   </td>
                 </tr>
