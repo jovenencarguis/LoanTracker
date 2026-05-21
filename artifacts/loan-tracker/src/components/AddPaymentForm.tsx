@@ -101,7 +101,7 @@ export function AddPaymentForm({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-secondary/50 p-4 rounded-lg mb-2 text-sm space-y-2 font-mono">
+        <div className="bg-secondary/50 p-4 rounded-lg mb-2 text-sm space-y-2 font-mono overflow-x-auto">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Current Balance:</span>
             <span>{formatMoney(previousBalance)}</span>
