@@ -52,7 +52,7 @@ export function BorrowerDetail() {
         {/* Nav row — hidden on print */}
         <div className="flex items-center justify-between mb-4 no-print">
           <Link
-            href="/"
+            href="/borrowers"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             data-testid="link-back"
           >

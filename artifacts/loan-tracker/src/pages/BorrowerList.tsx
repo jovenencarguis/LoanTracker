@@ -2,7 +2,7 @@ import { useLoanData } from "@/hooks/useLoanData";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Users, Wallet } from "lucide-react";
+import { Plus, Users, Wallet, ArrowLeft } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -20,8 +20,15 @@ export function BorrowerList() {
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background flex flex-col">
       <header className="px-6 pt-10 pb-6 border-b border-border bg-card sticky top-0 z-10">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+          data-testid="link-back-dashboard"
+        >
+          <ArrowLeft className="w-4 h-4" /> Dashboard
+        </Link>
         <h1 className="text-2xl font-serif font-bold text-foreground mb-6" data-testid="text-app-title">
-          Loan Tracker
+          All Borrowers
         </h1>
         
         <div className="grid grid-cols-2 gap-4">
