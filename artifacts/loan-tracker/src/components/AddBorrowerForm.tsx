@@ -49,7 +49,7 @@ export function AddBorrowerForm({
     defaultValues: {
       name: "",
       startingBalance: "" as unknown as number,
-      interestRate: 0,
+      interestRate: 10,
       dateBorrowed: format(new Date(), "yyyy-MM-dd"),
       notes: "",
     },
