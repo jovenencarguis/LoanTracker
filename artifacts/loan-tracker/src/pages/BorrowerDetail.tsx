@@ -2,7 +2,7 @@ import { useLoanData } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Calendar, FileText, Percent, Plus, PenLine, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, Percent, Plus, PenLine, Trash2, Printer } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
@@ -46,13 +46,16 @@ export function BorrowerDetail() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background flex flex-col">
-      <header className="px-6 py-6 border-b border-border bg-card sticky top-0 z-10 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+    <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background flex flex-col print:max-w-none print:min-h-0">
+      <header className="px-6 py-6 border-b border-border bg-card sticky top-0 z-10 flex flex-col gap-6 print:static print:border-b-2 print:border-black">
+        <div className="flex items-center justify-between no-print">
           <Link href="/" className="inline-flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" data-testid="link-back">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 no-print">
+            <Button variant="ghost" size="icon" onClick={() => window.print()} className="text-muted-foreground hover:text-foreground" data-testid="button-print-record" title="Print record">
+              <Printer className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowEditBorrower(true)} className="text-muted-foreground hover:text-foreground" data-testid="button-edit-borrower">
               <PenLine className="w-4 h-4" />
             </Button>
@@ -93,7 +96,7 @@ export function BorrowerDetail() {
             onClick={() => setShowAddPayment(true)} 
             disabled={borrower.currentBalance <= 0}
             size="sm"
-            className="h-8"
+            className="h-8 no-print"
             data-testid="button-add-payment"
           >
             <Plus className="w-3.5 h-3.5 mr-1" />
@@ -128,7 +131,7 @@ export function BorrowerDetail() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1 no-print"
                       onClick={() => setPaymentToDelete(payment.id)}
                       data-testid={`button-delete-payment-${payment.id}`}
                     >
