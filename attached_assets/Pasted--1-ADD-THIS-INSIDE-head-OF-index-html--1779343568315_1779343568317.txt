@@ -1,0 +1,225 @@
+<!-- ============================================
+     1) ADD THIS INSIDE <head> OF index.html
+   ============================================ -->
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+  // ============================================
+  // 2) FIREBASE CONFIG (REPLACE WITH YOURS)
+  //    Get this from: Firebase Console → Project Settings → Web App
+  // ============================================
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ============================================
+  // 3) GLOBAL DATA (REPLACES localStorage)
+  // ============================================
+  let borrowers = [];
+  let currentBorrowerId = null;
+
+  // ============================================
+  // 4) LOAD BORROWERS FROM FIREBASE IN REALTIME
+  // ============================================
+  function startBorrowersListener() {
+    db.ref("borrowers").on("value", (snapshot) => {
+      const data = snapshot.val();
+      borrowers = data ? Object.values(data) : [];
+      // Re-render main views if needed
+      if (document.getElementById("borrowerList")) {
+        renderBorrowerList();
+      }
+      if (currentBorrowerId !== null) {
+        renderBorrowerDetail(currentBorrowerId);
+      }
+    });
+  }
+
+  // ============================================
+  // 5) SAVE BORROWERS TO FIREBASE
+  // ============================================
+  function saveBorrowersToFirebase() {
+    const obj = {};
+    borrowers.forEach(b => {
+      obj[b.id] = b;
+    });
+    db.ref("borrowers").set(obj);
+  }
+
+  // ============================================
+  // 6) REPLACE YOUR OLD localStorage LOAD
+  //    CALL THIS ON PAGE LOAD
+  // ============================================
+  window.addEventListener("load", () => {
+    startBorrowersListener();
+  });
+
+  // ============================================
+  // 7) EXAMPLE: CREATE NEW BORROWER
+  //    (CALL THIS IN YOUR "Add Borrower" FORM)
+  // ============================================
+  function addNewBorrower(name, startingBalance, interestRate, dateBorrowed, notes) {
+    const id = Date.now();
+    const borrower = {
+      id,
+      name,
+      startingBalance: Number(startingBalance),
+      currentBalance: Number(startingBalance),
+      interestRate: Number(interestRate),
+      dateBorrowed,
+      notes: notes || "",
+      payments: []
+    };
+    borrowers.push(borrower);
+    saveBorrowersToFirebase();
+  }
+
+  // ============================================
+  // 8) EXAMPLE: SAVE PAYMENT (INTEREST-ONLY)
+  //    (HOOK THIS INTO YOUR handleAddPaymentSubmit)
+  // ============================================
+  function saveInterestOnlyPayment(borrowerId, date, interest, notes) {
+    const borrower = borrowers.find(b => b.id === borrowerId);
+    if (!borrower) return;
+
+    const previousBalance = borrower.currentBalance;
+    const repayment = 0;
+    const totalCollected = interest;
+    const newBalance = previousBalance;
+
+    const payment = {
+      id: Date.now(),
+      date,
+      previousBalance,
+      interest,
+      repayment,
+      totalCollected,
+      newBalance,
+      notes: notes || "",
+      type: "interest-only"
+    };
+
+    if (!borrower.payments) borrower.payments = [];
+    borrower.payments.push(payment);
+
+    // Balance unchanged for interest-only
+    borrower.currentBalance = newBalance;
+
+    saveBorrowersToFirebase();
+  }
+
+  // ============================================
+  // 9) HOOK INTO YOUR EXISTING FORM HANDLERS
+  //    Replace localStorage calls with Firebase calls
+  // ============================================
+
+  // Example: your existing handleAddPaymentSubmit
+  function handleAddPaymentSubmit(borrowerId) {
+    const date = document.getElementById("paymentDate").value;
+    const interest = parseFloat(document.getElementById("interestInput").value) || 0;
+    const notes = document.getElementById("paymentNotes").value.trim();
+
+    saveInterestOnlyPayment(borrowerId, date, interest, notes);
+    renderBorrowerDetail(borrowerId);
+
+    document.getElementById("addPaymentForm").style.display = "none";
+    document.getElementById("borrowerDetail").style.display = "block";
+  }
+
+  // Example: delete borrower
+  function deleteBorrower(borrowerId) {
+    borrowers = borrowers.filter(b => b.id !== borrowerId);
+    saveBorrowersToFirebase();
+    renderBorrowerList();
+  }
+
+  // Example: delete payment
+  function deletePayment(borrowerId, paymentId) {
+    const borrower = borrowers.find(b => b.id === borrowerId);
+    if (!borrower) return;
+    borrower.payments = borrower.payments.filter(p => p.id !== paymentId);
+    saveBorrowersToFirebase();
+    renderBorrowerDetail(borrowerId);
+  }
+
+  // ============================================
+  // 10) YOUR EXISTING RENDER FUNCTIONS
+  //     (KEEP YOUR CURRENT ONES, JUST USE "borrowers")
+  // ============================================
+
+  function renderBorrowerList() {
+    // Use global "borrowers" array as before
+    // Example only:
+    const list = document.getElementById("borrowerList");
+    if (!list) return;
+    list.innerHTML = "";
+    borrowers.forEach(b => {
+      const div = document.createElement("div");
+      div.textContent = `${b.name} - MOP ${b.currentBalance}`;
+      div.onclick = () => renderBorrowerDetail(b.id);
+      list.appendChild(div);
+    });
+  }
+
+  function renderBorrowerDetail(borrowerId) {
+    const borrower = borrowers.find(b => b.id === borrowerId);
+    if (!borrower) return;
+    currentBorrowerId = borrowerId;
+
+    // Show/hide sections as you already do
+    document.getElementById("borrowerDetail").style.display = "block";
+    document.getElementById("borrowerList").style.display = "none";
+
+    const info = `
+      <div>
+        <strong>Name:</strong> ${borrower.name}<br>
+        <strong>Starting Balance:</strong> MOP ${borrower.startingBalance}<br>
+        <strong>Current Balance:</strong> MOP ${borrower.currentBalance}<br>
+        <strong>Interest Rate:</strong> ${borrower.interestRate}%<br>
+        <strong>Date Borrowed:</strong> ${borrower.dateBorrowed}<br>
+        <strong>Notes:</strong> ${borrower.notes || "None"}
+      </div>
+    `;
+    document.getElementById("borrowerInfo").innerHTML = info;
+
+    renderPaymentHistory(borrower);
+  }
+
+  function renderPaymentHistory(borrower) {
+    const tbody = document.getElementById("paymentHistoryBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (!borrower.payments || borrower.payments.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No payments recorded yet.</td></tr>`;
+      return;
+    }
+
+    borrower.payments.forEach(payment => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${payment.date}</td>
+        <td>MOP ${payment.previousBalance}</td>
+        <td>MOP ${payment.interest}</td>
+        <td>MOP ${payment.repayment}</td>
+        <td>MOP ${payment.totalCollected}</td>
+        <td>MOP ${payment.newBalance}</td>
+        <td>${payment.notes || ""}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+</script>
