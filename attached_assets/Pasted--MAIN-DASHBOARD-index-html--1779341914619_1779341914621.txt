@@ -1,0 +1,115 @@
+/* ============================================
+   MAIN DASHBOARD (index.html)
+   ============================================ */
+
+<div id="dashboard">
+
+  <h1 class="dash-title">Loan Tracker Dashboard</h1>
+
+  <div class="dash-grid">
+
+    <div class="dash-card" onclick="renderBorrowerList()">
+      <h2>Total Borrowers</h2>
+      <p id="totalBorrowers">0</p>
+    </div>
+
+    <div class="dash-card" onclick="showNewBorrowerForm()">
+      <h2>Add New Borrower</h2>
+      <p>Tap to add</p>
+    </div>
+
+    <div class="dash-card" onclick="renderBorrowerList()">
+      <h2>View Borrowers</h2>
+      <p>Open list</p>
+    </div>
+
+    <div class="dash-card" onclick="window.print()">
+      <h2>Print Dashboard</h2>
+      <p>PDF Ready</p>
+    </div>
+
+  </div>
+
+</div>
+
+
+
+/* ============================================
+   MAIN DASHBOARD JS (script.js)
+   ============================================ */
+
+function renderDashboard() {
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("borrowerList").style.display = "none";
+  document.getElementById("borrowerDetail").style.display = "none";
+  document.getElementById("newBorrowerForm").style.display = "none";
+  document.getElementById("editBorrowerForm").style.display = "none";
+  document.getElementById("addPaymentForm").style.display = "none";
+
+  document.getElementById("totalBorrowers").innerText = borrowers.length;
+}
+
+
+
+/* ============================================
+   MAIN DASHBOARD CSS (style.css)
+   ============================================ */
+
+#dashboard {
+  padding: 20px;
+  text-align: center;
+}
+
+.dash-title {
+  font-size: 28px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+}
+
+.dash-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.dash-card:hover {
+  transform: scale(1.03);
+  background: #f5f5f5;
+}
+
+.dash-card h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.dash-card p {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #444;
+}
+
+
+
+/* ============================================
+   PRINT CLEAN DASHBOARD
+   ============================================ */
+
+@media print {
+  .dash-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
