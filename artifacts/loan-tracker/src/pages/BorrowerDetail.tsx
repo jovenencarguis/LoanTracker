@@ -1,7 +1,6 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Calendar, FileText, Percent, Plus, PenLine, Trash2, Printer } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
@@ -46,13 +45,20 @@ export function BorrowerDetail() {
   }
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background flex flex-col print:max-w-none print:min-h-0">
-      <header className="px-6 py-6 border-b border-border bg-card sticky top-0 z-10 flex flex-col gap-6 print:static print:border-b-2 print:border-black">
-        <div className="flex items-center justify-between no-print">
-          <Link href="/" className="inline-flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" data-testid="link-back">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-[100dvh] w-full max-w-[900px] mx-auto bg-background flex flex-col print:max-w-none print:min-h-0">
+
+      {/* ── Header ── */}
+      <header className="px-6 py-5 border-b border-border bg-card print:static print:border-b-2 print:border-black">
+        {/* Nav row — hidden on print */}
+        <div className="flex items-center justify-between mb-4 no-print">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            data-testid="link-back"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
           </Link>
-          <div className="flex items-center gap-1 no-print">
+          <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => window.print()} className="text-muted-foreground hover:text-foreground" data-testid="button-print-record" title="Print record">
               <Printer className="w-4 h-4" />
             </Button>
@@ -65,35 +71,46 @@ export function BorrowerDetail() {
           </div>
         </div>
 
-        <div>
-          <h1 className="text-2xl font-serif font-bold text-foreground mb-1" data-testid="text-borrower-name">
-            {borrower.name}
-          </h1>
-          <div className="text-sm text-muted-foreground flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {formatDate(borrower.dateBorrowed)}</span>
-            <span className="flex items-center gap-1.5"><Percent className="w-3.5 h-3.5" /> {borrower.interestRate}% interest</span>
-          </div>
-          {borrower.notes && (
-            <div className="mt-4 text-sm text-foreground bg-secondary/30 p-3 rounded-lg flex gap-2 items-start" data-testid="text-borrower-notes">
-              <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <p className="leading-relaxed">{borrower.notes}</p>
+        {/* Borrower info grid */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-serif font-bold text-foreground mb-2" data-testid="text-borrower-name">
+              {borrower.name}
+            </h1>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {formatDate(borrower.dateBorrowed)}</span>
+              <span className="flex items-center gap-1.5"><Percent className="w-3.5 h-3.5" /> {borrower.interestRate}% per period</span>
+              {borrower.notes && (
+                <span className="flex items-center gap-1.5 w-full sm:w-auto" data-testid="text-borrower-notes">
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span className="line-clamp-1">{borrower.notes}</span>
+                </span>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="bg-primary/5 border border-primary/10 rounded-xl p-5" data-testid="card-current-balance">
-          <div className="text-xs font-medium uppercase tracking-wider text-primary mb-1">Current Balance</div>
-          <div className="text-3xl font-serif font-bold text-primary">
-            {formatMoney(borrower.currentBalance)}
+          {/* Balance cards */}
+          <div className="flex gap-3 shrink-0">
+            <div className="bg-secondary/60 rounded-lg px-4 py-3 text-center min-w-[110px]">
+              <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wide">Starting</div>
+              <div className="font-serif font-semibold text-foreground">{formatMoney(borrower.startingBalance)}</div>
+            </div>
+            <div className="bg-primary/8 border border-primary/15 rounded-lg px-4 py-3 text-center min-w-[110px]" data-testid="card-current-balance">
+              <div className="text-xs text-primary mb-1 uppercase tracking-wide font-medium">Balance</div>
+              <div className="font-serif font-bold text-primary text-lg">{formatMoney(borrower.currentBalance)}</div>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-6 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Payment Ledger</h2>
-          <Button 
-            onClick={() => setShowAddPayment(true)} 
+      {/* ── Main content ── */}
+      <main className="flex-1 p-4 sm:p-6 overflow-x-auto">
+
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Payment History</h2>
+          <Button
+            onClick={() => setShowAddPayment(true)}
             disabled={borrower.currentBalance <= 0}
             size="sm"
             className="h-8 no-print"
@@ -104,90 +121,107 @@ export function BorrowerDetail() {
           </Button>
         </div>
 
-        <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
-          {/* Initial Loan Entry */}
-          <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-            <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-background bg-border text-muted-foreground absolute left-0 md:left-1/2 -translate-x-1/2 z-10 shrink-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-            </div>
-            <Card className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] ml-8 md:ml-0 shadow-sm border-border">
-              <CardContent className="p-4">
-                <div className="text-xs font-medium text-muted-foreground mb-1">{formatDate(borrower.dateBorrowed)}</div>
-                <div className="text-sm">Initial loan of <span className="font-serif font-medium">{formatMoney(borrower.startingBalance)}</span></div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* ── Table ── */}
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full text-sm border-collapse" data-testid="payment-history-table">
+            <thead>
+              <tr className="bg-secondary/60 text-left">
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">#</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Date</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Type</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Prev Balance</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Interest</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Principal</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Total Collected</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">New Balance</th>
+                <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Initial loan row */}
+              <tr className="border-b border-border/50 bg-secondary/20">
+                <td className="px-3 py-2.5 text-muted-foreground">0</td>
+                <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{formatDate(borrower.dateBorrowed)}</td>
+                <td className="px-3 py-2.5">
+                  <span className="text-xs font-medium text-muted-foreground bg-border/60 px-2 py-0.5 rounded-full whitespace-nowrap">Initial Loan</span>
+                </td>
+                <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
+                <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
+                <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
+                <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
+                <td className="px-3 py-2.5 text-right font-serif font-medium">{formatMoney(borrower.startingBalance)}</td>
+                <td className="px-3 py-2.5 no-print" />
+              </tr>
 
-          {/* Payment Entries */}
-          {borrower.payments.map((payment) => (
-            <div key={payment.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active" data-testid={`payment-entry-${payment.id}`}>
-              <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-background bg-primary/20 text-primary absolute left-0 md:left-1/2 -translate-x-1/2 z-10 shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              </div>
-              <Card className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] ml-8 md:ml-0 shadow-sm border-border">
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-muted-foreground">{formatDate(payment.date)}</div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1 no-print"
-                      onClick={() => setPaymentToDelete(payment.id)}
-                      data-testid={`button-delete-payment-${payment.id}`}
+              {/* Payment rows */}
+              {borrower.payments.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-8 text-center text-muted-foreground text-sm">
+                    No payments recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                borrower.payments.map((payment, i) => {
+                  const isInterestOnly = payment.type === "interest-only";
+                  return (
+                    <tr
+                      key={payment.id}
+                      className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${i % 2 === 0 ? "" : "bg-secondary/10"}`}
+                      data-testid={`payment-row-${payment.id}`}
                     >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  {payment.type === "interest-only" ? (
-                    <div className="text-sm leading-relaxed space-y-1.5">
-                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Interest Only</span>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-1">
-                        <span className="text-muted-foreground">Interest paid</span>
-                        <span className="text-right font-medium">{formatMoney(payment.interest)}</span>
-                        <span className="text-muted-foreground">Principal</span>
-                        <span className="text-right">MOP 0 <span className="text-muted-foreground">(unchanged)</span></span>
-                        <span className="text-muted-foreground">Total collected</span>
-                        <span className="text-right font-medium">{formatMoney(payment.totalCollected)}</span>
-                        <span className="text-muted-foreground">Balance</span>
-                        <span className="text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm leading-relaxed space-y-1.5">
-                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-primary/70 bg-primary/5 border border-primary/10 px-2 py-0.5 rounded-full">Principal + Interest</span>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-1">
-                        <span className="text-muted-foreground">Interest paid</span>
-                        <span className="text-right font-medium">{formatMoney(payment.interest)}</span>
-                        <span className="text-muted-foreground">Principal paid</span>
-                        <span className="text-right font-medium text-foreground">{formatMoney(payment.repayment)}</span>
-                        <span className="text-muted-foreground">Total collected</span>
-                        <span className="text-right font-medium">{formatMoney(payment.totalCollected)}</span>
-                        <span className="text-muted-foreground">New balance</span>
-                        <span className="text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</span>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ))}
-          
-          {borrower.currentBalance === 0 && borrower.payments.length > 0 && (
-             <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-             <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-background bg-green-100 absolute left-0 md:left-1/2 -translate-x-1/2 z-10 shrink-0">
-               <div className="w-1.5 h-1.5 rounded-full bg-green-600" />
-             </div>
-             <Card className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] ml-8 md:ml-0 shadow-sm border-transparent bg-green-50/50">
-               <CardContent className="p-4 text-center">
-                 <div className="text-sm font-medium text-green-700">Loan fully settled</div>
-               </CardContent>
-             </Card>
-           </div>
-          )}
+                      <td className="px-3 py-2.5 text-muted-foreground">{i + 1}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(payment.date)}</td>
+                      <td className="px-3 py-2.5">
+                        {isInterestOnly ? (
+                          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            Interest Only
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-primary/80 bg-primary/5 border border-primary/15 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            Principal + Interest
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.previousBalance)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-destructive">+{formatMoney(payment.interest)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs">
+                        {isInterestOnly
+                          ? <span className="text-muted-foreground">—</span>
+                          : <span className="text-foreground">{formatMoney(payment.repayment)}</span>
+                        }
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-medium">{formatMoney(payment.totalCollected)}</td>
+                      <td className="px-3 py-2.5 text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</td>
+                      <td className="px-3 py-2.5 text-center no-print">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => setPaymentToDelete(payment.id)}
+                          data-testid={`button-delete-payment-${payment.id}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+
+              {/* Settled row */}
+              {borrower.currentBalance === 0 && borrower.payments.length > 0 && (
+                <tr className="bg-green-50/50">
+                  <td colSpan={9} className="px-3 py-3 text-center text-sm font-medium text-green-700">
+                    Loan fully settled
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </main>
 
-      <AddPaymentForm 
+      <AddPaymentForm
         borrower={borrower}
         open={showAddPayment}
         onOpenChange={setShowAddPayment}
@@ -199,7 +233,7 @@ export function BorrowerDetail() {
         onOpenChange={setShowEditBorrower}
       />
 
-      {/* Delete Borrower Confirmation */}
+      {/* Delete Borrower */}
       <AlertDialog open={showDeleteBorrower} onOpenChange={setShowDeleteBorrower}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -210,18 +244,14 @@ export function BorrowerDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete-borrower">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteBorrower}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete-borrower"
-            >
+            <AlertDialogAction onClick={handleDeleteBorrower} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-borrower">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Payment Confirmation */}
+      {/* Delete Payment */}
       <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => { if (!open) setPaymentToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -232,11 +262,7 @@ export function BorrowerDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete-payment">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePayment}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete-payment"
-            >
+            <AlertDialogAction onClick={handleDeletePayment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="button-confirm-delete-payment">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
