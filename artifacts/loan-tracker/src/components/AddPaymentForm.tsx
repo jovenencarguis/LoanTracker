@@ -45,10 +45,17 @@ export function AddPaymentForm({
 
   const autoInterest = borrower.currentBalance * (borrower.interestRate / 100);
 
+  function getEffectiveDate() {
+    if (!borrower.payments || borrower.payments.length === 0) {
+      return borrower.dateBorrowed;
+    }
+    return borrower.payments[borrower.payments.length - 1].date;
+  }
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: getEffectiveDate(),
       repayment: "" as unknown as number,
       interest: autoInterest,
     },
@@ -57,7 +64,7 @@ export function AddPaymentForm({
   useEffect(() => {
     if (open) {
       form.reset({
-        date: format(new Date(), "yyyy-MM-dd"),
+        date: getEffectiveDate(),
         repayment: "" as unknown as number,
         interest: borrower.currentBalance * (borrower.interestRate / 100),
       });
