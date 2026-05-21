@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useLoanData, type Borrower } from "@/hooks/useLoanData";
 import { formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
@@ -27,32 +26,31 @@ import { useEffect } from "react";
 
 const formSchema = z.object({
   date: z.string().min(1, "Date is required"),
-  repayment: z.coerce.number().min(0),
-  interestOnly: z.boolean(),
-}).refine((data) => {
-  if (!data.interestOnly && data.repayment <= 0) return false;
-  return true;
-}, { message: "Must be a positive number", path: ["repayment"] });
+  repayment: z.coerce.number().min(0, "Cannot be negative"),
+  interest: z.coerce.number().min(0, "Cannot be negative"),
+});
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AddPaymentForm({ 
+export function AddPaymentForm({
   borrower,
-  open, 
-  onOpenChange 
-}: { 
+  open,
+  onOpenChange,
+}: {
   borrower: Borrower;
-  open: boolean; 
+  open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const { addPayment } = useLoanData();
+
+  const autoInterest = borrower.currentBalance * (borrower.interestRate / 100);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       repayment: "" as unknown as number,
-      interestOnly: false,
+      interest: autoInterest,
     },
   });
 
@@ -61,32 +59,35 @@ export function AddPaymentForm({
       form.reset({
         date: format(new Date(), "yyyy-MM-dd"),
         repayment: "" as unknown as number,
-        interestOnly: false,
+        interest: borrower.currentBalance * (borrower.interestRate / 100),
       });
     }
-  }, [open, form]);
+  }, [open, form, borrower]);
 
-  const interestOnly = useWatch({ control: form.control, name: "interestOnly" });
   const repaymentValue = useWatch({ control: form.control, name: "repayment" });
+  const interestValue = useWatch({ control: form.control, name: "interest" });
 
   const previousBalance = borrower.currentBalance;
-  const interest = previousBalance * (borrower.interestRate / 100);
-  const parsedRepayment = interestOnly ? 0 : (Number(repaymentValue) || 0);
-  const totalCollected = parsedRepayment + interest;
-  const newBalance = interestOnly ? previousBalance : previousBalance - parsedRepayment;
+  const parsedRepayment = Number(repaymentValue) || 0;
+  const parsedInterest = Number(interestValue) || 0;
+  const isInterestOnly = parsedRepayment === 0;
+  const newBalance = previousBalance - parsedRepayment;
+  const totalCollected = parsedRepayment + parsedInterest;
 
   function onSubmit(values: FormValues) {
-    if (!values.interestOnly && values.repayment > previousBalance) {
-      form.setError("repayment", { message: "Repayment cannot exceed current balance" });
+    if (values.repayment > previousBalance) {
+      form.setError("repayment", { message: "Cannot exceed current balance" });
       return;
     }
     addPayment(borrower.id, {
       date: values.date,
-      repayment: values.interestOnly ? 0 : values.repayment,
-      interestOnly: values.interestOnly,
+      repayment: values.repayment,
+      interest: values.interest,
     });
     onOpenChange(false);
-    toast.success(values.interestOnly ? "Interest-only payment recorded" : "Payment recorded successfully");
+    toast.success(
+      values.repayment > 0 ? "Payment recorded" : "Interest-only payment recorded"
+    );
   }
 
   return (
@@ -95,39 +96,41 @@ export function AddPaymentForm({
         <DialogHeader>
           <DialogTitle className="font-serif">Record Payment</DialogTitle>
           <DialogDescription>
-            {interestOnly
-              ? "Interest collected for this period. Principal balance stays the same."
-              : "Enter the principal amount repaid. Interest is calculated automatically."}
+            Interest is auto-calculated from the current balance. You can edit either amount before saving.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-secondary/50 p-4 rounded-lg mb-2 text-sm space-y-2 font-mono overflow-x-auto">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Current Balance:</span>
+        {/* Live summary panel */}
+        <div className="bg-secondary/50 p-4 rounded-lg text-sm space-y-2 font-mono overflow-x-auto">
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground shrink-0">Current Balance:</span>
             <span>{formatMoney(previousBalance)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Interest ({borrower.interestRate}%):</span>
-            <span className="text-destructive">+{formatMoney(interest)}</span>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground shrink-0">Interest ({borrower.interestRate}%):</span>
+            <span className="text-destructive">+{formatMoney(parsedInterest)}</span>
           </div>
-          {!interestOnly && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Principal Repayment:</span>
-              <span className="text-primary">-{formatMoney(parsedRepayment)}</span>
-            </div>
-          )}
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground shrink-0">Principal Repayment:</span>
+            <span className="text-primary">-{formatMoney(parsedRepayment)}</span>
+          </div>
           <div className="h-px bg-border my-1" />
-          <div className="flex justify-between font-medium">
-            <span>Total to Collect:</span>
+          <div className="flex justify-between gap-4 font-medium">
+            <span className="shrink-0">Total to Collect:</span>
             <span>{formatMoney(totalCollected)}</span>
           </div>
-          <div className="flex justify-between font-medium pt-1">
-            <span>New Balance:</span>
-            <span className={interestOnly ? "text-muted-foreground" : newBalance < 0 ? "text-destructive" : "text-primary"}>
+          <div className="flex justify-between gap-4 font-medium">
+            <span className="shrink-0">New Balance:</span>
+            <span className={newBalance < 0 ? "text-destructive" : isInterestOnly ? "text-muted-foreground" : "text-primary"}>
               {formatMoney(newBalance)}
-              {interestOnly && <span className="text-xs font-sans font-normal ml-1">(unchanged)</span>}
+              {isInterestOnly && <span className="text-xs font-sans font-normal ml-1">(unchanged)</span>}
             </span>
           </div>
+          {isInterestOnly && (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 font-sans">
+              Interest-only — principal stays the same
+            </div>
+          )}
         </div>
 
         <Form {...form}>
@@ -148,50 +151,55 @@ export function AddPaymentForm({
 
             <FormField
               control={form.control}
-              name="interestOnly"
+              name="repayment"
               render={({ field }) => (
-                <FormItem className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 space-y-0">
+                <FormItem>
+                  <FormLabel>Principal Repayment (MOP)</FormLabel>
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) form.setValue("repayment", 0);
-                      }}
-                      data-testid="payment-checkbox-interest-only"
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00 — leave at 0 for interest-only"
+                      {...field}
+                      data-testid="payment-input-repayment"
                     />
                   </FormControl>
-                  <div>
-                    <FormLabel className="text-sm font-medium cursor-pointer">Interest Only Payment</FormLabel>
-                    <p className="text-xs text-muted-foreground mt-0.5">Collect interest only — principal balance stays the same</p>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            {!interestOnly && (
-              <FormField
-                control={form.control}
-                name="repayment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Principal Repayment Amount (MOP)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} data-testid="payment-input-amount" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="interest"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Interest Payment (MOP)</FormLabel>
+                    <span className="text-xs text-muted-foreground">auto-calculated, editable</span>
+                  </div>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...field}
+                      data-testid="payment-input-interest"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="pt-4 flex justify-end">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="mr-2">
+            <div className="pt-2 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={!interestOnly && newBalance < 0}
+                disabled={newBalance < 0}
                 data-testid="button-submit-payment"
               >
                 Record Payment

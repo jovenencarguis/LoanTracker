@@ -1,0 +1,67 @@
+Update the Loan Tracking Web App with the following requirements:
+
+1. Separate Payment Inputs
+Create two separate input boxes in the Add Payment form:
+- Principal Repayment (number input)
+- Interest Payment (number input, auto-filled)
+
+2. Auto-Fill Current Month Interest
+- When the Add Payment form opens, automatically calculate the current month’s interest:
+    interest = currentBalance × interestRate
+- Display this computed interest inside the Interest Payment input box.
+- The user must be able to edit the interest amount manually if needed.
+
+3. Payment Logic
+- If the user enters a Principal Repayment:
+    newBalance = previousBalance − repayment
+- If the user enters 0 principal:
+    newBalance = previousBalance (unchanged)
+- Total collected:
+    totalCollected = interest + repayment
+
+4. Payment Object Structure
+Save each payment as:
+{
+  id: unique ID,
+  date: selectedDate,
+  previousBalance: borrower.currentBalance,
+  interest: interestAmount,
+  repayment: principalRepayment,
+  totalCollected: interestAmount + principalRepayment,
+  newBalance: computedNewBalance,
+  type: principalRepayment > 0 ? "regular" : "interest-only"
+}
+
+5. Payment History Display
+Each record must clearly show:
+- Date
+- Interest Paid
+- Principal Paid
+- Total Collected
+- New Balance
+- Type label:
+    “Interest-Only Payment” if repayment = 0
+    “Principal + Interest Payment” if repayment > 0
+
+Example display:
+“May 21, 2026 — Interest: MOP 500, Principal: MOP 0, Total: MOP 500, Balance unchanged.”
+
+6. UI Requirements
+- Add two labeled input boxes:
+    <label>Principal Repayment</label>
+    <input type="number" id="repaymentInput">
+
+    <label>Interest (Auto‑Calculated)</label>
+    <input type="number" id="interestInput">
+
+- When the form loads:
+    document.getElementById("interestInput").value = computedInterest;
+
+7. Output
+- Update index.html, style.css, and script.js.
+- Include:
+  - The two separate input boxes
+  - Auto-fill interest logic
+  - Updated payment calculation
+  - Updated history display
+- Ensure the app runs on all devices online.
