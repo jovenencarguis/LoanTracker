@@ -92,12 +92,33 @@ export function useLoanData() {
     return payment;
   }, [borrowers, saveBorrowers]);
 
+  const deleteBorrower = useCallback((id: string) => {
+    saveBorrowers(borrowers.filter(b => b.id !== id));
+  }, [borrowers, saveBorrowers]);
+
+  const deletePayment = useCallback((borrowerId: string, paymentId: string) => {
+    const borrowerIndex = borrowers.findIndex(b => b.id === borrowerId);
+    if (borrowerIndex === -1) return;
+
+    const borrower = borrowers[borrowerIndex];
+    const updatedPayments = borrower.payments.filter(p => p.id !== paymentId);
+    const currentBalance = updatedPayments.length > 0
+      ? updatedPayments[updatedPayments.length - 1].newBalance
+      : borrower.startingBalance;
+
+    const newBorrowers = [...borrowers];
+    newBorrowers[borrowerIndex] = { ...borrower, payments: updatedPayments, currentBalance };
+    saveBorrowers(newBorrowers);
+  }, [borrowers, saveBorrowers]);
+
   return {
     borrowers,
     isLoaded,
     addBorrower,
     updateBorrower,
     addPayment,
+    deleteBorrower,
+    deletePayment,
     getBorrower: useCallback((id: string) => borrowers.find(b => b.id === id), [borrowers])
   };
 }
