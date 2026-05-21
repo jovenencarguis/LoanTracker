@@ -1,25 +1,49 @@
 import { useLoanData } from "@/hooks/useLoanData";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Calendar, FileText, Percent, Plus, PenLine } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, Percent, Plus, PenLine, Trash2 } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { EditBorrowerForm } from "@/components/EditBorrowerForm";
 import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function BorrowerDetail() {
   const { id } = useParams();
-  const { getBorrower, isLoaded } = useLoanData();
+  const [, setLocation] = useLocation();
+  const { getBorrower, isLoaded, deleteBorrower, deletePayment } = useLoanData();
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
+  const [showDeleteBorrower, setShowDeleteBorrower] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
   if (!isLoaded) return null;
   if (!id) return <NotFound />;
 
   const borrower = getBorrower(id);
   if (!borrower) return <NotFound />;
+
+  function handleDeleteBorrower() {
+    deleteBorrower(id!);
+    setLocation("/");
+  }
+
+  function handleDeletePayment() {
+    if (!paymentToDelete || !id) return;
+    deletePayment(id, paymentToDelete);
+    setPaymentToDelete(null);
+  }
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background flex flex-col">
@@ -28,9 +52,14 @@ export function BorrowerDetail() {
           <Link href="/" className="inline-flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" data-testid="link-back">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setShowEditBorrower(true)} className="text-muted-foreground hover:text-foreground" data-testid="button-edit-borrower">
-            <PenLine className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setShowEditBorrower(true)} className="text-muted-foreground hover:text-foreground" data-testid="button-edit-borrower">
+              <PenLine className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setShowDeleteBorrower(true)} className="text-muted-foreground hover:text-destructive" data-testid="button-delete-borrower">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         <div>
@@ -87,14 +116,25 @@ export function BorrowerDetail() {
           </div>
 
           {/* Payment Entries */}
-          {borrower.payments.map((payment, i) => (
+          {borrower.payments.map((payment) => (
             <div key={payment.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active" data-testid={`payment-entry-${payment.id}`}>
               <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-background bg-primary/20 text-primary absolute left-0 md:left-1/2 -translate-x-1/2 z-10 shrink-0">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               </div>
               <Card className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] ml-8 md:ml-0 shadow-sm border-border">
                 <CardContent className="p-4 space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">{formatDate(payment.date)}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium text-muted-foreground">{formatDate(payment.date)}</div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive -mr-1"
+                      onClick={() => setPaymentToDelete(payment.id)}
+                      data-testid={`button-delete-payment-${payment.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                   <div className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
                     Balance {formatMoney(payment.previousBalance)} 
                     <span className="mx-1 text-border">→</span> 
@@ -137,6 +177,50 @@ export function BorrowerDetail() {
         open={showEditBorrower}
         onOpenChange={setShowEditBorrower}
       />
+
+      {/* Delete Borrower Confirmation */}
+      <AlertDialog open={showDeleteBorrower} onOpenChange={setShowDeleteBorrower}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {borrower.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this borrower and all {borrower.payments.length} payment record{borrower.payments.length !== 1 ? "s" : ""}. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-borrower">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteBorrower}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-borrower"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Payment Confirmation */}
+      <AlertDialog open={!!paymentToDelete} onOpenChange={(open) => { if (!open) setPaymentToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this payment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The balance will be recalculated from the remaining payments. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-payment">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePayment}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-payment"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
