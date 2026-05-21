@@ -1,0 +1,62 @@
+Update the Loan Tracking Web App to support “Interest‑Only Payments” and record them clearly in the payment history. Apply the following rules:
+
+1. Interest‑Only Payment Logic
+- When the user selects “Interest Only Payment,” repayment must be 0.
+- Principal balance must remain unchanged.
+- Only the interest for the selected date (day/month/year) is paid.
+- The payment record must show:
+  previousBalance
+  interest
+  repayment = 0
+  totalCollected = interest
+  newBalance = previousBalance (unchanged)
+
+2. Add a checkbox labeled “Interest Only Payment.”
+- When checked:
+  - Disable or hide the repayment input.
+  - Automatically set repayment = 0.
+  - Automatically calculate interest based on:
+      interest = currentBalance × interestRate
+  - Display the computed interest amount before submitting.
+
+3. Payment Object Structure
+Each interest‑only payment must be saved as:
+{
+  id: unique ID,
+  date: selectedDate,
+  previousBalance: borrower.currentBalance,
+  interest: computedInterest,
+  repayment: 0,
+  totalCollected: computedInterest,
+  newBalance: borrower.currentBalance,
+  type: "interest-only"
+}
+
+4. History Record Requirement
+- In the payment history list, display a clear label:
+  “Interest‑Only Payment for [Month] [Day], [Year]”
+- Example display:
+  “Interest‑Only Payment (May 21, 2026): Paid MOP 500 interest, principal unchanged.”
+
+5. Local Storage
+- Save interest‑only payments the same way as regular payments.
+- Do not modify borrower.currentBalance unless repayment > 0.
+- Ensure the payment history shows the correct date and type.
+
+6. UI Requirements
+- Add a checkbox or toggle labeled “Interest Only.”
+- When enabled:
+  - Hide or disable the repayment field.
+  - Show the interest amount clearly.
+- When disabled:
+  - Show the repayment field normally.
+
+7. Output
+- Update index.html, style.css, and script.js.
+- Include:
+  - The interest‑only toggle
+  - Updated payment form
+  - Updated payment calculation logic
+  - Updated save logic
+  - Updated history display showing “Interest‑Only Payment” with date
+- Ensure the app runs immediately without errors.
