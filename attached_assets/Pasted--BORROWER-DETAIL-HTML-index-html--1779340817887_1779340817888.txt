@@ -1,0 +1,166 @@
+/* ============================================
+   BORROWER DETAIL HTML (index.html)
+   ============================================ */
+
+<div id="borrowerDetail" style="display:none;">
+
+  <h2>Borrower Details</h2>
+
+  <div id="borrowerInfo" class="detail-card"></div>
+
+  <button onclick="showAddPaymentForm(currentBorrowerId)" class="primary-btn">Add Payment</button>
+  <button onclick="showEditBorrowerForm(currentBorrowerId)" class="secondary-btn">Edit Borrower</button>
+  <button onclick="deleteBorrower(currentBorrowerId)" class="delete-btn">Delete Borrower</button>
+  <button onclick="window.print()" class="print-btn">Print Record</button>
+
+  <h3>Payment History</h3>
+  <div id="paymentHistory"></div>
+
+  <button onclick="renderBorrowerList()" class="back-btn">Back to List</button>
+
+</div>
+
+
+
+/* ============================================
+   BORROWER DETAIL JS (script.js)
+   ============================================ */
+
+function renderBorrowerDetail(borrowerId) {
+  const borrower = borrowers.find(b => b.id === borrowerId);
+  if (!borrower) return;
+
+  currentBorrowerId = borrowerId;
+
+  document.getElementById("borrowerDetail").style.display = "block";
+  document.getElementById("borrowerList").style.display = "none";
+  document.getElementById("newBorrowerForm").style.display = "none";
+  document.getElementById("editBorrowerForm").style.display = "none";
+  document.getElementById("addPaymentForm").style.display = "none";
+
+  const info = `
+    <div>
+      <strong>Name:</strong> ${borrower.name}<br>
+      <strong>Starting Balance:</strong> MOP ${borrower.startingBalance}<br>
+      <strong>Current Balance:</strong> MOP ${borrower.currentBalance}<br>
+      <strong>Interest Rate:</strong> ${borrower.interestRate}%<br>
+      <strong>Date Borrowed:</strong> ${borrower.dateBorrowed}<br>
+      <strong>Notes:</strong> ${borrower.notes || "None"}
+    </div>
+  `;
+
+  document.getElementById("borrowerInfo").innerHTML = info;
+
+  renderPaymentHistory(borrower);
+}
+
+
+
+/* ============================================
+   PAYMENT HISTORY JS (script.js)
+   ============================================ */
+
+function renderPaymentHistory(borrower) {
+  const historyContainer = document.getElementById("paymentHistory");
+  historyContainer.innerHTML = "";
+
+  if (borrower.payments.length === 0) {
+    historyContainer.innerHTML = "<p>No payments recorded yet.</p>";
+    return;
+  }
+
+  borrower.payments.forEach(payment => {
+    const div = document.createElement("div");
+    div.className = "payment-card";
+
+    const typeLabel = payment.repayment > 0
+      ? "Principal + Interest Payment"
+      : "Interest‑Only Payment";
+
+    div.innerHTML = `
+      <strong>${typeLabel}</strong><br>
+      Date: ${payment.date}<br>
+      Interest Paid: MOP ${payment.interest}<br>
+      Principal Paid: MOP ${payment.repayment}<br>
+      Total Collected: MOP ${payment.totalCollected}<br>
+      Previous Balance: MOP ${payment.previousBalance}<br>
+      New Balance: MOP ${payment.newBalance}<br><br>
+
+      <button onclick="deletePayment(${borrower.id}, ${payment.id})" class="delete-btn">Delete Payment</button>
+    `;
+
+    historyContainer.appendChild(div);
+  });
+}
+
+
+
+/* ============================================
+   BORROWER DETAIL CSS (style.css)
+   ============================================ */
+
+.detail-card {
+  background: #f0f0f0;
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.payment-card {
+  background: #f5f5f5;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.primary-btn {
+  background: #007bff;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.secondary-btn {
+  background: #6c757d;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.delete-btn {
+  background: #d9534f;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.print-btn {
+  background: #5cb85c;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.back-btn {
+  background: #444;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  margin-top: 20px;
+  width: 100%;
+}

@@ -194,6 +194,51 @@
   }
 }
 
+@media print {
+  .no-print { display: none !important; }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  /* Full-width layout, no max-width clamp */
+  [class*="max-w-"] { max-width: 100% !important; }
+
+  /* Remove card shadows and backgrounds — clean paper look */
+  [class*="shadow"] { box-shadow: none !important; }
+  [class*="bg-primary\\/5"], [class*="bg-secondary"], [class*="bg-card"] {
+    background: transparent !important;
+  }
+
+  /* Keep card borders visible */
+  [class*="border-border"] { border-color: #ccc !important; }
+
+  /* Prevent timeline pseudo-line from printing oddly */
+  .space-y-4.relative::before { display: none !important; }
+
+  /* Keep payment cards side-by-side on paper */
+  [class*="w-\\[calc\\(100\\%-2rem\\)\\]"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  /* Page title block */
+  header {
+    padding: 0 0 12pt !important;
+    margin-bottom: 12pt;
+  }
+
+  /* Print footer with page number */
+  @page {
+    margin: 1.5cm;
+  }
+  @page :first {
+    margin-top: 1cm;
+  }
+}
+
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
