@@ -1,0 +1,118 @@
+You are an expert web developer. Create a complete, mobile-friendly Loan Tracking Web App using only HTML, CSS, and JavaScript (no frameworks).
+
+Requirements:
+
+1. Overall structure
+- Use three files: index.html, style.css, script.js.
+- index.html should link to style.css and script.js correctly.
+- The app must run as a static site (no backend).
+
+2. Core features
+- Manage multiple borrowers.
+- For each borrower, store:
+  id (unique)
+  name
+  startingBalance
+  currentBalance
+  interestRate (as percentage)
+  dateBorrowed
+  notes (optional)
+  payments (array)
+- Allow adding new borrowers via a “New Borrower” form.
+- Show a main list of borrowers with:
+  name
+  current balance
+  date borrowed
+- Clicking a borrower opens a detailed view with:
+  borrower info
+  full payment history
+  button to add a new payment
+  button to edit borrower details (including date borrowed).
+
+3. Payment logic
+- For each payment, store:
+  id
+  date
+  previousBalance
+  interest
+  repayment
+  totalCollected
+  newBalance
+- Interest is calculated on the current remaining balance before each payment:
+  interest = previousBalance × interestRate
+- Total collected:
+  totalCollected = repayment + interest
+- New balance:
+  newBalance = previousBalance − repayment
+- When a payment is added:
+  - Use the borrower’s currentBalance as previousBalance.
+  - Compute interest, totalCollected, and newBalance.
+  - Push a payment object into borrower.payments.
+  - Update borrower.currentBalance to newBalance.
+- Display each payment in a clear breakdown line, for example:
+  "Balance MOP 5,000 → interest MOP 500 → repay MOP 3,000 → collect MOP 3,500 → balance = MOP 2,000"
+
+4. Date Borrowed and editability
+- The New Borrower form must include a Date Borrowed field (HTML date input).
+- The Date Borrowed must be editable later in an Edit Borrower form.
+- When the user edits Date Borrowed or other borrower fields, update the borrower object and save changes.
+
+5. Local storage (offline database)
+- Use localStorage to persist all data.
+- Use a single key, for example "loanData".
+- The stored structure should be an array of borrower objects.
+- On app load:
+  - Read from localStorage.
+  - If data exists, parse and load it into memory.
+  - If not, start with an empty array.
+- After any change (add/edit borrower, add payment), save the updated array back to localStorage:
+  localStorage.setItem("loanData", JSON.stringify(borrowers));
+- On load:
+  const saved = localStorage.getItem("loanData");
+  if (saved) borrowers = JSON.parse(saved);
+
+6. UI requirements
+- Clean, simple, mobile-friendly layout.
+- Use a top header with the app title, e.g., “Loan Tracker”.
+- Main screen:
+  - List of borrowers.
+  - Button “Add Borrower”.
+- New Borrower form:
+  - Fields: Name, Starting Balance, Interest Rate, Date Borrowed, Notes.
+  - Basic validation: required fields cannot be empty, numbers must be positive.
+  - Show simple inline error messages.
+- Borrower detail screen:
+  - Show borrower name, current balance, interest rate, date borrowed, notes.
+  - List of payments with breakdown lines.
+  - Button “Add Payment”.
+  - Button “Edit Borrower”.
+- Add Payment form:
+  - Fields: Payment Date, Repayment Amount.
+  - Automatically compute interest, total collected, and new balance using the rules above.
+- Edit Borrower form:
+  - Allow editing: name, interest rate, date borrowed, notes.
+  - Do not change payment history automatically.
+- Use basic but neat styling in style.css (cards, spacing, readable fonts, responsive layout).
+
+7. Code organization
+- In script.js:
+  - Keep borrowers in a global array.
+  - Write functions for:
+    loadDataFromLocalStorage()
+    saveDataToLocalStorage()
+    renderBorrowerList()
+    renderBorrowerDetail(borrowerId)
+    showNewBorrowerForm()
+    handleNewBorrowerSubmit()
+    showEditBorrowerForm(borrowerId)
+    handleEditBorrowerSubmit(borrowerId)
+    showAddPaymentForm(borrowerId)
+    handleAddPaymentSubmit(borrowerId)
+  - Use event listeners instead of inline onclick attributes where possible.
+- Ensure there are no syntax errors and the app runs immediately when opened in a browser.
+
+8. Output format
+- First, output the full content of index.html.
+- Then output the full content of style.css.
+- Then output the full content of script.js.
+- Do not include explanations, only the code for each file.
