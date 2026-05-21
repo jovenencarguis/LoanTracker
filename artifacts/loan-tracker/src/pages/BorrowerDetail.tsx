@@ -135,17 +135,26 @@ export function BorrowerDetail() {
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
-                  <div className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
-                    Balance {formatMoney(payment.previousBalance)} 
-                    <span className="mx-1 text-border">→</span> 
-                    interest {formatMoney(payment.interest)} 
-                    <span className="mx-1 text-border">→</span> 
-                    repay <span className="text-foreground font-medium">{formatMoney(payment.repayment)}</span> 
-                    <span className="mx-1 text-border">→</span> 
-                    collect {formatMoney(payment.totalCollected)} 
-                    <span className="mx-1 text-border">→</span> 
-                    balance = <span className="text-primary font-serif font-medium">{formatMoney(payment.newBalance)}</span>
-                  </div>
+                  {payment.type === "interest-only" ? (
+                    <div className="text-sm leading-relaxed space-y-1">
+                      <span className="inline-block text-xs font-medium uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full mb-1">Interest Only</span>
+                      <div className="text-muted-foreground">
+                        Paid <span className="text-foreground font-medium">{formatMoney(payment.interest)}</span> interest — principal <span className="text-primary font-serif font-medium">{formatMoney(payment.newBalance)}</span> unchanged
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
+                      Balance {formatMoney(payment.previousBalance)} 
+                      <span className="mx-1 text-border">→</span> 
+                      interest {formatMoney(payment.interest)} 
+                      <span className="mx-1 text-border">→</span> 
+                      repay <span className="text-foreground font-medium">{formatMoney(payment.repayment)}</span> 
+                      <span className="mx-1 text-border">→</span> 
+                      collect {formatMoney(payment.totalCollected)} 
+                      <span className="mx-1 text-border">→</span> 
+                      balance = <span className="text-primary font-serif font-medium">{formatMoney(payment.newBalance)}</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
