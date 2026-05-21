@@ -175,12 +175,22 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground selection:bg-primary/20 selection:text-primary;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+  }
+  input, select, textarea, button {
+    min-height: 44px;
+    font-size: 16px; /* prevents iOS auto-zoom on focus */
+  }
+  button[data-size="icon"], button[data-variant="ghost"][class*="h-6"] {
+    min-height: unset;
   }
 }
 
