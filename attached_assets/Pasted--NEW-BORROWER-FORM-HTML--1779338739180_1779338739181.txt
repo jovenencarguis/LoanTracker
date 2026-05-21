@@ -1,0 +1,79 @@
+/* ============================
+   NEW BORROWER FORM (HTML)
+   ============================ */
+
+<!-- Interest Rate with default 10% but editable -->
+<label>Interest Rate (%)</label>
+<input type="number" id="interestRate" value="10" step="0.01" required>
+
+
+/* ============================
+   EDIT BORROWER FORM (HTML)
+   ============================ */
+
+<!-- When editing, pre-fill the saved rate, but if empty use 10% -->
+<label>Interest Rate (%)</label>
+<input type="number" id="editInterestRate" step="0.01">
+
+
+/* ============================
+   NEW BORROWER SUBMIT (script.js)
+   ============================ */
+
+function handleNewBorrowerSubmit() {
+  const name = document.getElementById("name").value.trim();
+  const startingBalance = parseFloat(document.getElementById("startingBalance").value);
+  const interestRate = parseFloat(document.getElementById("interestRate").value) || 10;
+  const dateBorrowed = document.getElementById("dateBorrowed").value;
+  const notes = document.getElementById("notes").value.trim();
+
+  const borrower = {
+    id: Date.now(),
+    name,
+    startingBalance,
+    currentBalance: startingBalance,
+    interestRate,
+    dateBorrowed,
+    notes,
+    payments: []
+  };
+
+  borrowers.push(borrower);
+  localStorage.setItem("loanData", JSON.stringify(borrowers));
+  renderBorrowerList();
+}
+
+
+/* ============================
+   LOAD EDIT FORM (script.js)
+   ============================ */
+
+function showEditBorrowerForm(borrowerId) {
+  const borrower = borrowers.find(b => b.id === borrowerId);
+  if (!borrower) return;
+
+  document.getElementById("editName").value = borrower.name;
+  document.getElementById("editInterestRate").value = borrower.interestRate || 10;
+  document.getElementById("editDateBorrowed").value = borrower.dateBorrowed;
+  document.getElementById("editNotes").value = borrower.notes;
+
+  currentEditingBorrower = borrowerId;
+}
+
+
+/* ============================
+   EDIT BORROWER SUBMIT (script.js)
+   ============================ */
+
+function handleEditBorrowerSubmit() {
+  const borrower = borrowers.find(b => b.id === currentEditingBorrower);
+  if (!borrower) return;
+
+  borrower.name = document.getElementById("editName").value.trim();
+  borrower.interestRate = parseFloat(document.getElementById("editInterestRate").value) || 10;
+  borrower.dateBorrowed = document.getElementById("editDateBorrowed").value;
+  borrower.notes = document.getElementById("editNotes").value.trim();
+
+  localStorage.setItem("loanData", JSON.stringify(borrowers));
+  renderBorrowerDetail(borrower.id);
+}

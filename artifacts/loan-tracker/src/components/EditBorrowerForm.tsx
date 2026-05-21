@@ -46,7 +46,7 @@ export function EditBorrowerForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: borrower.name,
-      interestRate: borrower.interestRate,
+      interestRate: borrower.interestRate || 10,
       dateBorrowed: borrower.dateBorrowed,
       notes: borrower.notes || "",
     },
@@ -56,7 +56,7 @@ export function EditBorrowerForm({
     if (open) {
       form.reset({
         name: borrower.name,
-        interestRate: borrower.interestRate,
+        interestRate: borrower.interestRate || 10,
         dateBorrowed: borrower.dateBorrowed,
         notes: borrower.notes || "",
       });
