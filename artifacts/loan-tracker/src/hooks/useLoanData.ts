@@ -11,9 +11,8 @@ export interface Payment {
   type: "regular" | "interest-only";
 }
 
-export interface Borrower {
+export interface Loan {
   id: string;
-  name: string;
   startingBalance: number;
   currentBalance: number;
   interestRate: number;
@@ -22,7 +21,13 @@ export interface Borrower {
   payments: Payment[];
 }
 
-const STORAGE_KEY = "loanData";
+export interface Borrower {
+  id: string;
+  name: string;
+  loans: Loan[];
+}
+
+const STORAGE_KEY = "loanData_v2";
 
 export function useLoanData() {
   const [borrowers, setBorrowers] = useState<Borrower[]>([]);
@@ -31,100 +36,132 @@ export function useLoanData() {
   useEffect(() => {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        setBorrowers(JSON.parse(data));
-      }
+      if (data) setBorrowers(JSON.parse(data));
     } catch (e) {
-      console.error("Failed to load loan data from localStorage", e);
+      console.error("Failed to load loan data", e);
     }
     setIsLoaded(true);
   }, []);
 
-  const saveBorrowers = useCallback((newBorrowers: Borrower[]) => {
-    setBorrowers(newBorrowers);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newBorrowers));
+  const saveBorrowers = useCallback((next: Borrower[]) => {
+    setBorrowers(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }, []);
 
-  const addBorrower = useCallback((borrower: Omit<Borrower, "id" | "currentBalance" | "payments">) => {
-    const newBorrower: Borrower = {
-      ...borrower,
-      id: crypto.randomUUID(),
-      currentBalance: borrower.startingBalance,
-      payments: []
-    };
-    saveBorrowers([...borrowers, newBorrower]);
-    return newBorrower;
+  const addBorrower = useCallback((name: string) => {
+    const b: Borrower = { id: crypto.randomUUID(), name, loans: [] };
+    saveBorrowers([...borrowers, b]);
+    return b;
   }, [borrowers, saveBorrowers]);
 
-  const updateBorrower = useCallback((id: string, updates: Partial<Pick<Borrower, "name" | "interestRate" | "dateBorrowed" | "notes">>) => {
-    saveBorrowers(borrowers.map(b => b.id === id ? { ...b, ...updates } : b));
-  }, [borrowers, saveBorrowers]);
-
-  const addPayment = useCallback((borrowerId: string, paymentData: { date: string; repayment: number; interest?: number }) => {
-    const borrowerIndex = borrowers.findIndex(b => b.id === borrowerId);
-    if (borrowerIndex === -1) return null;
-
-    const borrower = borrowers[borrowerIndex];
-    const previousBalance = borrower.currentBalance;
-    const interest = paymentData.interest !== undefined
-      ? paymentData.interest
-      : previousBalance * (borrower.interestRate / 100);
-    const repayment = paymentData.repayment;
-    const isInterestOnly = repayment === 0;
-    const newBalance = previousBalance - repayment;
-    const totalCollected = repayment + interest;
-
-    const payment: Payment = {
-      id: crypto.randomUUID(),
-      date: paymentData.date,
-      previousBalance,
-      interest,
-      repayment,
-      totalCollected,
-      newBalance,
-      type: isInterestOnly ? "interest-only" : "regular",
-    };
-
-    const updatedBorrower = {
-      ...borrower,
-      currentBalance: newBalance,
-      payments: [...borrower.payments, payment]
-    };
-
-    const newBorrowers = [...borrowers];
-    newBorrowers[borrowerIndex] = updatedBorrower;
-    saveBorrowers(newBorrowers);
-
-    return payment;
+  const updateBorrower = useCallback((id: string, name: string) => {
+    saveBorrowers(borrowers.map(b => b.id === id ? { ...b, name } : b));
   }, [borrowers, saveBorrowers]);
 
   const deleteBorrower = useCallback((id: string) => {
     saveBorrowers(borrowers.filter(b => b.id !== id));
   }, [borrowers, saveBorrowers]);
 
-  const deletePayment = useCallback((borrowerId: string, paymentId: string) => {
-    const borrowerIndex = borrowers.findIndex(b => b.id === borrowerId);
-    if (borrowerIndex === -1) return;
-
-    const borrower = borrowers[borrowerIndex];
-    const updatedPayments = borrower.payments.filter(p => p.id !== paymentId);
-    const currentBalance = updatedPayments.length > 0
-      ? updatedPayments[updatedPayments.length - 1].newBalance
-      : borrower.startingBalance;
-
-    const newBorrowers = [...borrowers];
-    newBorrowers[borrowerIndex] = { ...borrower, payments: updatedPayments, currentBalance };
-    saveBorrowers(newBorrowers);
+  const addLoan = useCallback((
+    borrowerId: string,
+    data: Omit<Loan, "id" | "currentBalance" | "payments">
+  ) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return null;
+    const loan: Loan = { ...data, id: crypto.randomUUID(), currentBalance: data.startingBalance, payments: [] };
+    const next = [...borrowers];
+    next[bi] = { ...next[bi], loans: [...next[bi].loans, loan] };
+    saveBorrowers(next);
+    return loan;
   }, [borrowers, saveBorrowers]);
 
+  const updateLoan = useCallback((
+    borrowerId: string,
+    loanId: string,
+    updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes">>
+  ) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return;
+    const next = [...borrowers];
+    next[bi] = { ...next[bi], loans: next[bi].loans.map(l => l.id === loanId ? { ...l, ...updates } : l) };
+    saveBorrowers(next);
+  }, [borrowers, saveBorrowers]);
+
+  const deleteLoan = useCallback((borrowerId: string, loanId: string) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return;
+    const next = [...borrowers];
+    next[bi] = { ...next[bi], loans: next[bi].loans.filter(l => l.id !== loanId) };
+    saveBorrowers(next);
+  }, [borrowers, saveBorrowers]);
+
+  const addPayment = useCallback((
+    borrowerId: string,
+    loanId: string,
+    data: { date: string; repayment: number; interest?: number }
+  ) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return null;
+    const borrower = borrowers[bi];
+    const li = borrower.loans.findIndex(l => l.id === loanId);
+    if (li === -1) return null;
+    const loan = borrower.loans[li];
+
+    const previousBalance = loan.currentBalance;
+    const interest = data.interest !== undefined ? data.interest : previousBalance * (loan.interestRate / 100);
+    const repayment = data.repayment;
+    const newBalance = previousBalance - repayment;
+    const totalCollected = repayment + interest;
+
+    const payment: Payment = {
+      id: crypto.randomUUID(),
+      date: data.date,
+      previousBalance,
+      interest,
+      repayment,
+      totalCollected,
+      newBalance,
+      type: repayment === 0 ? "interest-only" : "regular",
+    };
+
+    const updatedLoans = [...borrower.loans];
+    updatedLoans[li] = { ...loan, currentBalance: newBalance, payments: [...loan.payments, payment] };
+    const next = [...borrowers];
+    next[bi] = { ...borrower, loans: updatedLoans };
+    saveBorrowers(next);
+    return payment;
+  }, [borrowers, saveBorrowers]);
+
+  const deletePayment = useCallback((borrowerId: string, loanId: string, paymentId: string) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return;
+    const borrower = borrowers[bi];
+    const li = borrower.loans.findIndex(l => l.id === loanId);
+    if (li === -1) return;
+    const loan = borrower.loans[li];
+
+    const updatedPayments = loan.payments.filter(p => p.id !== paymentId);
+    const currentBalance = updatedPayments.length > 0
+      ? updatedPayments[updatedPayments.length - 1].newBalance
+      : loan.startingBalance;
+
+    const updatedLoans = [...borrower.loans];
+    updatedLoans[li] = { ...loan, payments: updatedPayments, currentBalance };
+    const next = [...borrowers];
+    next[bi] = { ...borrower, loans: updatedLoans };
+    saveBorrowers(next);
+  }, [borrowers, saveBorrowers]);
+
+  const getBorrower = useCallback((id: string) => borrowers.find(b => b.id === id), [borrowers]);
+  const getLoan = useCallback((borrowerId: string, loanId: string) => {
+    return borrowers.find(b => b.id === borrowerId)?.loans.find(l => l.id === loanId);
+  }, [borrowers]);
+
   return {
-    borrowers,
-    isLoaded,
-    addBorrower,
-    updateBorrower,
-    addPayment,
-    deleteBorrower,
-    deletePayment,
-    getBorrower: useCallback((id: string) => borrowers.find(b => b.id === id), [borrowers])
+    borrowers, isLoaded,
+    addBorrower, updateBorrower, deleteBorrower,
+    addLoan, updateLoan, deleteLoan,
+    addPayment, deletePayment,
+    getBorrower, getLoan,
   };
 }
