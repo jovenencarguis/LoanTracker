@@ -95,6 +95,17 @@ export function useLoanData() {
     saveBorrowers(next);
   }, [borrowers, saveBorrowers]);
 
+  const markLoanAsPaid = useCallback((borrowerId: string, loanId: string) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return;
+    const next = [...borrowers];
+    next[bi] = {
+      ...next[bi],
+      loans: next[bi].loans.map(l => l.id === loanId ? { ...l, currentBalance: 0 } : l),
+    };
+    saveBorrowers(next);
+  }, [borrowers, saveBorrowers]);
+
   const addPayment = useCallback((
     borrowerId: string,
     loanId: string,
@@ -160,7 +171,7 @@ export function useLoanData() {
   return {
     borrowers, isLoaded,
     addBorrower, updateBorrower, deleteBorrower,
-    addLoan, updateLoan, deleteLoan,
+    addLoan, updateLoan, deleteLoan, markLoanAsPaid,
     addPayment, deletePayment,
     getBorrower, getLoan,
   };

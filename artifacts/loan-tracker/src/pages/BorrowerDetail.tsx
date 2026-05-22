@@ -22,12 +22,13 @@ import {
 export function BorrowerDetail() {
   const { borrowerId } = useParams();
   const [, setLocation] = useLocation();
-  const { getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, deleteLoan } = useLoanData();
+  const { getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, deleteLoan, markLoanAsPaid } = useLoanData();
 
   const [showAddLoan, setShowAddLoan] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
   const [showDeleteBorrower, setShowDeleteBorrower] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<string | null>(null);
+  const [loanToSettle, setLoanToSettle] = useState<string | null>(null);
 
   if (!isLoaded) return null;
   if (!borrowerId) return <NotFound />;
@@ -131,6 +132,11 @@ export function BorrowerDetail() {
                           <Link href={`/borrowers/${borrowerId}/loans/${loan.id}`}>
                             <Button variant="outline" size="sm" className="h-7 text-xs" data-testid={`button-view-loan-${loan.id}`}>View</Button>
                           </Link>
+                          {!settled && (
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-green-700 hover:text-green-800 hover:bg-green-50" onClick={() => setLoanToSettle(loan.id)} data-testid={`button-settle-loan-${loan.id}`}>
+                              Settle
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setLoanToDelete(loan.id)} data-testid={`button-delete-loan-${loan.id}`}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
@@ -192,6 +198,33 @@ export function BorrowerDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (loanToDelete) { deleteLoan(borrowerId, loanToDelete); setLoanToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Settle Loan */}
+      <AlertDialog open={!!loanToSettle} onOpenChange={open => { if (!open) setLoanToSettle(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark loan as fully settled?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will set the outstanding balance to MOP 0. The payment history will be kept. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (loanToSettle) {
+                  markLoanAsPaid(borrowerId, loanToSettle);
+                  setLoanToSettle(null);
+                  toast.success("Loan marked as settled");
+                }
+              }}
+              className="bg-green-700 text-white hover:bg-green-800"
+            >
+              Mark as Settled
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
