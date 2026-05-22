@@ -1,25 +1,15 @@
 import { z } from "zod";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { type Borrower } from "@/hooks/useLoanData";
+import { type Loan } from "@/hooks/useLoanData";
 import { formatMoney } from "@/lib/utils";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -33,24 +23,19 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function AddPaymentForm({
-  borrower,
+  loan,
   open,
   onOpenChange,
   addPayment,
 }: {
-  borrower: Borrower;
+  loan: Loan;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  addPayment: (borrowerId: string, data: { date: string; repayment: number; interest?: number }) => void;
+  addPayment: (data: { date: string; repayment: number; interest?: number }) => void;
 }) {
-
-  const autoInterest = borrower.currentBalance * (borrower.interestRate / 100);
-
   function getEffectiveDate() {
-    if (!borrower.payments || borrower.payments.length === 0) {
-      return borrower.dateBorrowed;
-    }
-    return borrower.payments[borrower.payments.length - 1].date;
+    if (!loan.payments || loan.payments.length === 0) return loan.dateBorrowed;
+    return loan.payments[loan.payments.length - 1].date;
   }
 
   const form = useForm<FormValues>({
@@ -58,7 +43,7 @@ export function AddPaymentForm({
     defaultValues: {
       date: getEffectiveDate(),
       repayment: "" as unknown as number,
-      interest: autoInterest,
+      interest: loan.currentBalance * (loan.interestRate / 100),
     },
   });
 
@@ -67,15 +52,15 @@ export function AddPaymentForm({
       form.reset({
         date: getEffectiveDate(),
         repayment: "" as unknown as number,
-        interest: borrower.currentBalance * (borrower.interestRate / 100),
+        interest: loan.currentBalance * (loan.interestRate / 100),
       });
     }
-  }, [open, form, borrower]);
+  }, [open, loan]);
 
   const repaymentValue = useWatch({ control: form.control, name: "repayment" });
   const interestValue = useWatch({ control: form.control, name: "interest" });
 
-  const previousBalance = borrower.currentBalance;
+  const previousBalance = loan.currentBalance;
   const parsedRepayment = Number(repaymentValue) || 0;
   const parsedInterest = Number(interestValue) || 0;
   const isInterestOnly = parsedRepayment === 0;
@@ -87,15 +72,9 @@ export function AddPaymentForm({
       form.setError("repayment", { message: "Cannot exceed current balance" });
       return;
     }
-    addPayment(borrower.id, {
-      date: values.date,
-      repayment: values.repayment,
-      interest: values.interest,
-    });
+    addPayment({ date: values.date, repayment: values.repayment, interest: values.interest });
     onOpenChange(false);
-    toast.success(
-      values.repayment > 0 ? "Payment recorded" : "Interest-only payment recorded"
-    );
+    toast.success(values.repayment > 0 ? "Payment recorded" : "Interest-only payment recorded");
   }
 
   return (
@@ -103,19 +82,17 @@ export function AddPaymentForm({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="font-serif">Record Payment</DialogTitle>
-          <DialogDescription>
-            Interest is auto-calculated from the current balance. You can edit either amount before saving.
-          </DialogDescription>
+          <DialogDescription>Interest is auto-calculated. You can edit either amount before saving.</DialogDescription>
         </DialogHeader>
 
-        {/* Live summary panel */}
+        {/* Live summary */}
         <div className="bg-secondary/50 p-4 rounded-lg text-sm space-y-2 font-mono overflow-x-auto">
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground shrink-0">Current Balance:</span>
             <span>{formatMoney(previousBalance)}</span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground shrink-0">Interest ({borrower.interestRate}%):</span>
+            <span className="text-muted-foreground shrink-0">Interest ({loan.interestRate}%):</span>
             <span className="text-destructive">+{formatMoney(parsedInterest)}</span>
           </div>
           <div className="flex justify-between gap-4">
@@ -143,75 +120,40 @@ export function AddPaymentForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} data-testid="payment-input-date" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="date" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Date</FormLabel>
+                <FormControl><Input type="date" {...field} data-testid="payment-input-date" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            <FormField
-              control={form.control}
-              name="repayment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Principal Repayment (MOP)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00 — leave at 0 for interest-only"
-                      {...field}
-                      data-testid="payment-input-repayment"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="repayment" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Principal Repayment (MOP)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00 — leave at 0 for interest-only" {...field} data-testid="payment-input-repayment" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            <FormField
-              control={form.control}
-              name="interest"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Interest Payment (MOP)</FormLabel>
-                    <span className="text-xs text-muted-foreground">auto-calculated, editable</span>
-                  </div>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...field}
-                      data-testid="payment-input-interest"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="interest" render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Interest Payment (MOP)</FormLabel>
+                  <span className="text-xs text-muted-foreground">auto-calculated, editable</span>
+                </div>
+                <FormControl>
+                  <Input type="number" step="0.01" min="0" {...field} data-testid="payment-input-interest" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <div className="pt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={newBalance < 0}
-                data-testid="button-submit-payment"
-              >
-                Record Payment
-              </Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button type="submit" disabled={newBalance < 0} data-testid="button-submit-payment">Record Payment</Button>
             </div>
           </form>
         </Form>
