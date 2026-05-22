@@ -6,12 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'MOP',
+  return '$ ' + new Intl.NumberFormat('en-US', {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2
-  }).format(amount).replace('MOP', 'MOP ');
+  }).format(amount);
 }
 
 export function formatDate(dateString: string): string {
