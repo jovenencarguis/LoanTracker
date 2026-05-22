@@ -63,6 +63,7 @@ export function Dashboard() {
                 <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Name</th>
                 <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap">Total Loans</th>
                 <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Outstanding Balance</th>
+                <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap">Status</th>
                 <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap no-print">Actions</th>
               </tr>
             </thead>
@@ -85,6 +86,13 @@ export function Dashboard() {
                         <span className="text-xs font-medium bg-secondary px-2 py-0.5 rounded-full">{totalLoans}</span>
                       </td>
                       <td className="px-4 py-3 text-right font-serif font-medium text-primary">{formatMoney(outstanding)}</td>
+                      <td className="px-4 py-3 text-center">
+                        {outstanding > 0 ? (
+                          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending</span>
+                        ) : (
+                          <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Eligible</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-center no-print">
                         <Link href={`/borrowers/${b.id}`}>
                           <Button variant="outline" size="sm" className="h-7 text-xs" data-testid={`button-view-${b.id}`}>

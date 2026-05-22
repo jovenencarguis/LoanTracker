@@ -1,0 +1,104 @@
+// ================================
+// 1) Load borrowers from localStorage
+// ================================
+let borrowers = [];
+
+function loadBorrowers() {
+  const saved = localStorage.getItem("borrowers");
+  borrowers = saved ? JSON.parse(saved) : [];
+}
+
+function saveBorrowers() {
+  localStorage.setItem("borrowers", JSON.stringify(borrowers));
+}
+
+// ================================
+// 2) Add borrower (only once)
+// ================================
+function addBorrower(name) {
+  const id = Date.now();
+  const borrower = { id, name, loans: [] };
+  borrowers.push(borrower);
+  saveBorrowers();
+  renderDashboard();
+}
+
+// ================================
+// 3) Add loan with rule (must pay old loan first)
+// ================================
+function addLoan(borrowerId, amount, date, interestRate) {
+  const borrower = borrowers.find(b => b.id === borrowerId);
+  if (!borrower) return;
+
+  // Rule: borrower cannot borrow again if any loan is pending
+  const hasPending = borrower.loans.some(loan => loan.balance > 0);
+  if (hasPending) {
+    alert("This borrower still has a pending loan. They must fully pay before borrowing again.");
+    return;
+  }
+
+  borrower.loans.push({
+    loanId: Date.now(),
+    amount,
+    date,
+    interestRate,
+    balance: amount,
+    payments: []
+  });
+
+  saveBorrowers();
+  renderDashboard();
+}
+
+// ================================
+// 4) Mark loan as fully paid
+// ================================
+function markLoanAsPaid(borrowerId, loanId) {
+  const borrower = borrowers.find(b => b.id === borrowerId);
+  if (!borrower) return;
+
+  const loan = borrower.loans.find(l => l.loanId === loanId);
+  if (!loan) return;
+
+  loan.balance = 0; // fully paid
+  saveBorrowers();
+  renderDashboard();
+}
+
+// ================================
+// 5) Render dashboard with $ sign
+// ================================
+function renderDashboard() {
+  const tbody = document.getElementById("dashboardBody");
+  tbody.innerHTML = "";
+
+  if (borrowers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No borrowers yet.</td></tr>`;
+    return;
+  }
+
+  borrowers.forEach((b, index) => {
+    const totalLoans = b.loans.length;
+    const outstanding = b.loans.reduce((sum, loan) => sum + loan.balance, 0);
+    const status = outstanding > 0 ? "Pending" : "Eligible";
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${b.name}</td>
+      <td>${totalLoans}</td>
+      <td>$ ${outstanding}</td>
+      <td>${status}</td>
+      <td>
+        <button onclick="viewBorrower(${b.id})">View</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// ================================
+// 6) Initialize
+// ================================
+loadBorrowers();
+renderDashboard();
