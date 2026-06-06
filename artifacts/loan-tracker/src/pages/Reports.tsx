@@ -3,7 +3,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import {
   BarChart,
   Bar,
@@ -34,24 +35,51 @@ export function Reports() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
 
-  if (!isLoaded) return null;
+  // ── Build and validate per-month aggregates for the selected year ──
+  const { yearlyData, invalidMonths } = useMemo(() => {
+    const data = Array.from({ length: 12 }, (_, m) => {
+      let capital = 0, interest = 0;
+      borrowers.forEach(b =>
+        b.loans.forEach(loan =>
+          loan.payments.forEach(p => {
+            const d = new Date(p.date);
+            if (d.getMonth() === m && d.getFullYear() === year) {
+              capital += Number(p.repayment) || 0;
+              interest += Number(p.interest) || 0;
+            }
+          })
+        )
+      );
+      // Sanitize: replace any NaN that slipped through
+      const safeCapital = isNaN(capital) ? 0 : capital;
+      const safeInterest = isNaN(interest) ? 0 : interest;
+      return {
+        monthIndex: m,
+        label: MONTH_SHORT[m],
+        capital: safeCapital,
+        interest: safeInterest,
+        total: safeCapital + safeInterest,
+        hasError: isNaN(capital) || isNaN(interest),
+      };
+    });
 
-  // ── Build per-month aggregates for the selected year ──
-  const yearlyData = Array.from({ length: 12 }, (_, m) => {
-    let capital = 0, interest = 0;
-    borrowers.forEach(b =>
-      b.loans.forEach(loan =>
-        loan.payments.forEach(p => {
-          const d = new Date(p.date);
-          if (d.getMonth() === m && d.getFullYear() === year) {
-            capital += p.repayment;
-            interest += p.interest;
-          }
-        })
-      )
-    );
-    return { monthIndex: m, label: MONTH_SHORT[m], capital, interest, total: capital + interest };
-  });
+    const bad = data.filter(d => d.hasError).map(d => MONTH_NAMES[d.monthIndex]);
+    return { yearlyData: data, invalidMonths: bad };
+  }, [borrowers, year]);
+
+  // ── Warn if any month has corrupted data ──
+  const invalidKey = invalidMonths.join(",");
+  useEffect(() => {
+    if (invalidMonths.length > 0) {
+      toast.warning(
+        `Data issue detected in ${invalidMonths.join(", ")} — some payment records may be corrupt. Values shown as $0.`,
+        { duration: 8000 }
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invalidKey]);
+
+  if (!isLoaded) return null;
 
   const yearTotal = yearlyData.reduce((s, d) => s + d.total, 0);
   const yearCapital = yearlyData.reduce((s, d) => s + d.capital, 0);
