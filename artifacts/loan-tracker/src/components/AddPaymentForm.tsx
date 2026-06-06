@@ -31,7 +31,7 @@ export function AddPaymentForm({
   loan: Loan;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  addPayment: (data: { date: string; repayment: number; interest?: number }) => void;
+  addPayment: (data: { date: string; repayment: number; interest?: number }) => Promise<void>;
 }) {
   function getEffectiveDate() {
     if (!loan.payments || loan.payments.length === 0) return loan.dateBorrowed;
@@ -67,12 +67,12 @@ export function AddPaymentForm({
   const newBalance = previousBalance - parsedRepayment;
   const totalCollected = parsedRepayment + parsedInterest;
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
     if (values.repayment > previousBalance) {
       form.setError("repayment", { message: "Cannot exceed current balance" });
       return;
     }
-    addPayment({ date: values.date, repayment: values.repayment, interest: values.interest });
+    await addPayment({ date: values.date, repayment: values.repayment, interest: values.interest });
     onOpenChange(false);
     toast.success(values.repayment > 0 ? "Payment recorded" : "Interest-only payment recorded");
   }

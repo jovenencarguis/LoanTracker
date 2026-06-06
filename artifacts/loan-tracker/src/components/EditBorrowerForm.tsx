@@ -28,7 +28,7 @@ export function EditBorrowerForm({
   borrower: Borrower;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  updateBorrower: (id: string, name: string) => void;
+  updateBorrower: (id: string, name: string) => Promise<void>;
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -39,8 +39,8 @@ export function EditBorrowerForm({
     if (open) form.reset({ name: borrower.name });
   }, [open, borrower, form]);
 
-  function onSubmit(values: FormValues) {
-    updateBorrower(borrower.id, values.name);
+  async function onSubmit(values: FormValues) {
+    await updateBorrower(borrower.id, values.name);
     onOpenChange(false);
     toast.success("Name updated");
   }

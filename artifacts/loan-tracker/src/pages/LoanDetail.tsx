@@ -179,7 +179,7 @@ export function LoanDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { deleteLoan(borrowerId, loanId); setLocation(`/borrowers/${borrowerId}`); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={async () => { await deleteLoan(borrowerId, loanId); setLocation(`/borrowers/${borrowerId}`); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

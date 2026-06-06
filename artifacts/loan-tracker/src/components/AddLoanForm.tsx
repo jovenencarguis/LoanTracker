@@ -32,7 +32,7 @@ export function AddLoanForm({
   borrowerId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  addLoan: (borrowerId: string, data: Omit<Loan, "id" | "currentBalance" | "payments">) => Loan | null;
+  addLoan: (borrowerId: string, data: Omit<Loan, "id" | "currentBalance" | "payments">) => Promise<Loan | null>;
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,8 +44,8 @@ export function AddLoanForm({
     },
   });
 
-  function onSubmit(values: FormValues) {
-    addLoan(borrowerId, values);
+  async function onSubmit(values: FormValues) {
+    await addLoan(borrowerId, values);
     form.reset({
       startingBalance: "" as unknown as number,
       interestRate: 10,
