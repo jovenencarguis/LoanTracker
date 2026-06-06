@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, ChevronLeft } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
+import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { formatMoney } from "@/lib/utils";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { type Borrower } from "@/hooks/useLoanData";
+import { type Borrower, type Loan } from "@/hooks/useLoanData";
 
 function BorrowerTable({ rows, emptyMessage }: { rows: { borrower: Borrower; outstanding: number }[]; emptyMessage: string }) {
   if (rows.length === 0) {
@@ -104,10 +106,133 @@ function AllLoansDialog({ open, onOpenChange, borrowers }: {
   );
 }
 
+// ── Quick Payment wizard: Pick borrower → pick loan → add payment ──────────
+type QpStep =
+  | { kind: "borrowers" }
+  | { kind: "loans"; borrower: Borrower }
+  | { kind: "payment"; borrower: Borrower; loan: Loan };
+
+function QuickPaymentDialog({ open, onOpenChange, borrowers, addPayment }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  borrowers: Borrower[];
+  addPayment: (borrowerId: string, loanId: string, data: { date: string; repayment: number; interest?: number }) => void;
+}) {
+  const [step, setStep] = useState<QpStep>({ kind: "borrowers" });
+
+  const reset = () => setStep({ kind: "borrowers" });
+  const handleClose = (v: boolean) => { if (!v) reset(); onOpenChange(v); };
+
+  // Only borrowers that have at least one loan with balance > 0
+  const activeBorrowers = borrowers.filter(b => b.loans.some(l => l.currentBalance > 0));
+
+  if (step.kind === "payment") {
+    const { borrower, loan } = step;
+    return (
+      <AddPaymentForm
+        loan={loan}
+        open={open}
+        onOpenChange={(v) => { handleClose(v); }}
+        addPayment={(data) => {
+          addPayment(borrower.id, loan.id, data);
+          toast.success("Payment recorded");
+          handleClose(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            {step.kind === "loans" && (
+              <button
+                type="button"
+                onClick={() => setStep({ kind: "borrowers" })}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <DialogTitle className="font-serif">
+              {step.kind === "borrowers" ? "Record a Payment" : `${step.borrower.name} — Select Loan`}
+            </DialogTitle>
+          </div>
+          <DialogDescription>
+            {step.kind === "borrowers"
+              ? "Choose a borrower to record a payment for."
+              : "Choose which loan to apply the payment to."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Step 1: borrower list */}
+        {step.kind === "borrowers" && (
+          <div className="space-y-2 mt-1">
+            {activeBorrowers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No borrowers with an outstanding balance.</p>
+            ) : activeBorrowers.map((b) => {
+              const outstanding = b.loans.reduce((s, l) => s + l.currentBalance, 0);
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setStep({ kind: "loans", borrower: b })}
+                  className="w-full rounded-lg border border-border p-3 hover:bg-secondary/50 transition-colors flex items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <div className="text-sm font-medium">{b.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {b.loans.filter(l => l.currentBalance > 0).length} active loan{b.loans.filter(l => l.currentBalance > 0).length !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-serif font-bold text-primary text-sm">{formatMoney(outstanding)}</div>
+                    <div className="text-xs text-muted-foreground">outstanding</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Step 2: loan list for selected borrower */}
+        {step.kind === "loans" && (
+          <div className="space-y-2 mt-1">
+            {step.borrower.loans.filter(l => l.currentBalance > 0).map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setStep({ kind: "payment", borrower: step.borrower, loan: l })}
+                className="w-full rounded-lg border border-border p-3 hover:bg-secondary/50 transition-colors flex items-center justify-between gap-3 text-left"
+              >
+                <div>
+                  <div className="text-sm font-medium">{formatMoney(l.startingBalance)} loan</div>
+                  <div className="text-xs text-muted-foreground">
+                    {l.interestRate}% interest · since {l.dateBorrowed}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-serif font-bold text-primary text-sm">{formatMoney(l.currentBalance)}</div>
+                  <div className="text-xs text-muted-foreground">remaining</div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function Dashboard() {
-  const { borrowers, isLoaded, addBorrower } = useLoanData();
+  const { borrowers, isLoaded, addBorrower, addPayment } = useLoanData();
   const [showAdd, setShowAdd] = useState(false);
   const [showLoans, setShowLoans] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLElement>(null);
   const [, navigate] = useLocation();
@@ -200,15 +325,15 @@ export function Dashboard() {
             </div>
           </button>
 
-          {/* Payments → go to reports */}
-          <button type="button" className={`${cardDefault} w-full text-left`} onClick={() => navigate("/reports")}>
+          {/* Payments → open quick-payment wizard */}
+          <button type="button" className={`${cardDefault} w-full text-left`} onClick={() => setShowPayment(true)}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Payments</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalCollected)}</div>
-              <div className="text-xs text-muted-foreground">collected — see report</div>
+              <div className="text-xs text-muted-foreground">collected — add payment</div>
             </div>
           </button>
 
@@ -259,6 +384,12 @@ export function Dashboard() {
 
       <AddBorrowerForm open={showAdd} onOpenChange={setShowAdd} addBorrower={addBorrower} />
       <AllLoansDialog open={showLoans} onOpenChange={setShowLoans} borrowers={borrowers} />
+      <QuickPaymentDialog
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        borrowers={borrowers}
+        addPayment={addPayment}
+      />
     </div>
   );
 }
