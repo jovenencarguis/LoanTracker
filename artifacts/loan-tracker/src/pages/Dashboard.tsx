@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, ChevronLeft } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, ChevronLeft, Bell } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { formatMoney } from "@/lib/utils";
@@ -73,6 +73,7 @@ function AllLoansDialog({ open, onOpenChange, borrowers }: {
       <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif">All Loans</DialogTitle>
+          <DialogDescription>Browse all loans across every borrower. Tap a row to open its detail page.</DialogDescription>
         </DialogHeader>
         {allLoans.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">No loans recorded yet.</p>
@@ -101,6 +102,141 @@ function AllLoansDialog({ open, onOpenChange, borrowers }: {
             ))}
           </div>
         )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Payment due-date logic ─────────────────────────────────────────────────
+type PaymentStatus =
+  | { kind: "paid";      lastDate: string; nextDueDate: Date }
+  | { kind: "overdue";   lastDate: string; nextDueDate: Date; daysLate: number }
+  | { kind: "due-soon";  lastDate: string; nextDueDate: Date; daysLeft: number }
+  | { kind: "upcoming";  lastDate: string; nextDueDate: Date; daysLeft: number };
+
+function getPaymentStatus(loan: Loan): PaymentStatus {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lastPayment = loan.payments.length > 0
+    ? loan.payments[loan.payments.length - 1]
+    : null;
+
+  const refDateStr = lastPayment ? lastPayment.date : loan.dateBorrowed;
+  const refDate = new Date(refDateStr);
+
+  // Paid if last payment is in the current calendar month
+  if (lastPayment) {
+    const lp = new Date(lastPayment.date);
+    if (lp.getMonth() === today.getMonth() && lp.getFullYear() === today.getFullYear()) {
+      const next = new Date(lp);
+      next.setMonth(next.getMonth() + 1);
+      return { kind: "paid", lastDate: lastPayment.date, nextDueDate: next };
+    }
+  }
+
+  // Next due = ref date + 1 month
+  const nextDue = new Date(refDate);
+  nextDue.setMonth(nextDue.getMonth() + 1);
+
+  const diffDays = Math.ceil((nextDue.getTime() - today.getTime()) / 86_400_000);
+
+  if (diffDays < 0)  return { kind: "overdue",  lastDate: refDateStr, nextDueDate: nextDue, daysLate: -diffDays };
+  if (diffDays <= 7) return { kind: "due-soon", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
+  return                    { kind: "upcoming", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
+}
+
+interface LoanNotification {
+  borrower: Borrower;
+  loan: Loan;
+  status: PaymentStatus;
+}
+
+function statusLabel(s: PaymentStatus) {
+  if (s.kind === "paid")     return "Paid this month";
+  if (s.kind === "overdue")  return `Overdue by ${s.daysLate} day${s.daysLate !== 1 ? "s" : ""}`;
+  if (s.kind === "due-soon") return s.daysLeft === 0 ? "Due today!" : `Due in ${s.daysLeft} day${s.daysLeft !== 1 ? "s" : ""}`;
+  return `Due in ${(s as { daysLeft: number }).daysLeft} days`;
+}
+
+const STATUS_STYLES: Record<PaymentStatus["kind"], string> = {
+  overdue:   "bg-red-50 border-red-200 text-red-700",
+  "due-soon":"bg-amber-50 border-amber-200 text-amber-700",
+  upcoming:  "bg-blue-50 border-blue-200 text-blue-700",
+  paid:      "bg-green-50 border-green-200 text-green-700",
+};
+
+const BADGE_STYLES: Record<PaymentStatus["kind"], string> = {
+  overdue:   "bg-red-100 text-red-700 border border-red-200",
+  "due-soon":"bg-amber-100 text-amber-700 border border-amber-200",
+  upcoming:  "bg-blue-100 text-blue-700 border border-blue-200",
+  paid:      "bg-green-100 text-green-700 border border-green-200",
+};
+
+function NotificationsDialog({ open, onOpenChange, notifications }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  notifications: LoanNotification[];
+}) {
+  const order: PaymentStatus["kind"][] = ["overdue", "due-soon", "upcoming", "paid"];
+  const sorted = [...notifications].sort(
+    (a, b) => order.indexOf(a.status.kind) - order.indexOf(b.status.kind)
+  );
+
+  const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[82vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif flex items-center gap-2">
+            <Bell className="w-5 h-5 text-primary" /> Payment Notifications
+          </DialogTitle>
+          <DialogDescription>
+            Monthly payment status for all active loans.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-2 text-xs mt-1">
+          {(["overdue", "due-soon", "upcoming", "paid"] as PaymentStatus["kind"][]).map(k => (
+            <span key={k} className={`px-2 py-0.5 rounded-full font-medium ${BADGE_STYLES[k]}`}>
+              {k === "overdue" ? "Overdue" : k === "due-soon" ? "Due Soon" : k === "upcoming" ? "Upcoming" : "Paid"}
+            </span>
+          ))}
+        </div>
+
+        <div className="space-y-2 mt-2">
+          {sorted.length === 0 && (
+            <p className="text-sm text-muted-foreground py-6 text-center">No active loans to track.</p>
+          )}
+          {sorted.map(({ borrower: b, loan: l, status: s }) => (
+            <Link
+              key={`${b.id}-${l.id}`}
+              href={`/borrowers/${b.id}/loans/${l.id}`}
+              onClick={() => onOpenChange(false)}
+            >
+              <div className={`rounded-lg border p-3 transition-colors hover:opacity-90 cursor-pointer ${STATUS_STYLES[s.kind]}`}>
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div>
+                    <div className="font-semibold text-sm">{b.name}</div>
+                    <div className="text-xs opacity-70">{formatMoney(l.startingBalance)} loan · {l.interestRate}% interest</div>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${BADGE_STYLES[s.kind]}`}>
+                    {statusLabel(s)}
+                  </span>
+                </div>
+                <div className="flex gap-4 text-xs opacity-80">
+                  <span>Last payment: <strong>{s.lastDate}</strong></span>
+                  <span>Next due: <strong>{fmt(s.nextDueDate)}</strong></span>
+                </div>
+                <div className="mt-1.5 text-xs opacity-70 font-medium">
+                  Balance remaining: {formatMoney(l.currentBalance)}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -233,6 +369,7 @@ export function Dashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [showLoans, setShowLoans] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLElement>(null);
   const [, navigate] = useLocation();
@@ -272,6 +409,14 @@ export function Dashboard() {
     s + b.loans.reduce((s2, l) =>
       s2 + l.payments.reduce((s3, p) => s3 + p.totalCollected, 0), 0), 0);
 
+  // Notifications — all active loans with their payment status
+  const notifications: LoanNotification[] = borrowers.flatMap(b =>
+    b.loans
+      .filter(l => l.currentBalance > 0)
+      .map(l => ({ borrower: b, loan: l, status: getPaymentStatus(l) }))
+  );
+  const urgentCount = notifications.filter(n => n.status.kind === "overdue" || n.status.kind === "due-soon").length;
+
   const cardBase = "rounded-lg p-4 flex items-start gap-3 cursor-pointer transition-all duration-150 select-none active:scale-[0.97]";
   const cardDefault = `bg-secondary/50 hover:bg-secondary/80 hover:shadow-sm ${cardBase}`;
   const cardPrimary = `bg-primary/8 border border-primary/15 hover:bg-primary/14 hover:shadow-sm ${cardBase}`;
@@ -286,6 +431,21 @@ export function Dashboard() {
         <div className="flex items-start justify-between mb-1">
           <h1 className="text-2xl font-serif font-bold text-foreground">Loan Tracker</h1>
           <div className="flex items-center gap-1.5 no-print">
+            {/* Notification bell */}
+            <button
+              type="button"
+              onClick={() => setShowNotifications(true)}
+              className="relative h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+              aria-label="Payment notifications"
+            >
+              <Bell className="w-4 h-4" />
+              {urgentCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                  {urgentCount}
+                </span>
+              )}
+            </button>
+            <div className="w-px h-4 bg-border mx-0.5" />
             <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
               onClick={() => exportData()}>
               <Download className="w-3.5 h-3.5" /> Export
@@ -389,6 +549,11 @@ export function Dashboard() {
         onOpenChange={setShowPayment}
         borrowers={borrowers}
         addPayment={addPayment}
+      />
+      <NotificationsDialog
+        open={showNotifications}
+        onOpenChange={setShowNotifications}
+        notifications={notifications}
       />
     </div>
   );
