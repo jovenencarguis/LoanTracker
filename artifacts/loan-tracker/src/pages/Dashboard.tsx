@@ -1,7 +1,13 @@
 import { useLoanData, exportData, importData } from "@/hooks/useLoanData";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { formatMoney } from "@/lib/utils";
 import { useState, useRef } from "react";
@@ -51,10 +57,60 @@ function BorrowerTable({ rows, emptyMessage }: { rows: { borrower: Borrower; out
   );
 }
 
+function AllLoansDialog({ open, onOpenChange, borrowers }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  borrowers: Borrower[];
+}) {
+  const allLoans = borrowers.flatMap(b =>
+    b.loans.map(l => ({ borrower: b, loan: l }))
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif">All Loans</DialogTitle>
+        </DialogHeader>
+        {allLoans.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No loans recorded yet.</p>
+        ) : (
+          <div className="space-y-2 mt-1">
+            {allLoans.map(({ borrower: b, loan: l }, i) => (
+              <Link key={l.id} href={`/borrowers/${b.id}/loans/${l.id}`} onClick={() => onOpenChange(false)}>
+                <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center justify-between gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`}>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{b.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {l.interestRate}% interest · borrowed {l.dateBorrowed}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className={`font-serif font-bold text-sm ${l.currentBalance > 0 ? "text-primary" : "text-green-600"}`}>
+                      {formatMoney(l.currentBalance)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {l.currentBalance > 0 ? "outstanding" : "settled"}
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function Dashboard() {
   const { borrowers, isLoaded, addBorrower } = useLoanData();
   const [showAdd, setShowAdd] = useState(false);
+  const [showLoans, setShowLoans] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const tableRef = useRef<HTMLElement>(null);
+  const [, navigate] = useLocation();
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +125,10 @@ export function Dashboard() {
     } catch (err: unknown) {
       toast.error(`Import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
+  };
+
+  const scrollToBorrowers = () => {
+    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   if (!isLoaded) return null;
@@ -87,10 +147,13 @@ export function Dashboard() {
     s + b.loans.reduce((s2, l) =>
       s2 + l.payments.reduce((s3, p) => s3 + p.totalCollected, 0), 0), 0);
 
+  const cardBase = "rounded-lg p-4 flex items-start gap-3 cursor-pointer transition-all duration-150 select-none active:scale-[0.97]";
+  const cardDefault = `bg-secondary/50 hover:bg-secondary/80 hover:shadow-sm ${cardBase}`;
+  const cardPrimary = `bg-primary/8 border border-primary/15 hover:bg-primary/14 hover:shadow-sm ${cardBase}`;
+
   return (
     <div className="min-h-[100dvh] w-full max-w-[700px] mx-auto bg-background flex flex-col print:max-w-none">
 
-      {/* Hidden file input for import */}
       <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
 
       {/* Header */}
@@ -110,47 +173,48 @@ export function Dashboard() {
         </div>
         <p className="text-sm text-muted-foreground mb-5">Borrowers Dashboard</p>
 
-        {/* Stat cards grid */}
+        {/* Stat cards — each is clickable */}
         <div className="grid grid-cols-2 gap-3 mb-3">
-          {/* Borrowers */}
-          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+
+          {/* Borrowers → scroll to table */}
+          <button type="button" className={`${cardDefault} w-full text-left`} onClick={scrollToBorrowers}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <Users className="w-4 h-4 text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Borrowers</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{pending.length}</div>
-              <div className="text-xs text-muted-foreground">active</div>
+              <div className="text-xs text-muted-foreground">active ↓</div>
             </div>
-          </div>
+          </button>
 
-          {/* Loans */}
-          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+          {/* Loans → open all-loans modal */}
+          <button type="button" className={`${cardDefault} w-full text-left`} onClick={() => setShowLoans(true)}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <Wallet className="w-4 h-4 text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Loans</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalOutstanding)}</div>
-              <div className="text-xs text-muted-foreground">{totalLoans} total loan{totalLoans !== 1 ? "s" : ""}</div>
+              <div className="text-xs text-muted-foreground">{totalLoans} loan{totalLoans !== 1 ? "s" : ""} — view all</div>
             </div>
-          </div>
+          </button>
 
-          {/* Payments collected */}
-          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+          {/* Payments → go to reports */}
+          <button type="button" className={`${cardDefault} w-full text-left`} onClick={() => navigate("/reports")}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <TrendingUp className="w-4 h-4 text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Payments</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalCollected)}</div>
-              <div className="text-xs text-muted-foreground">collected all time</div>
+              <div className="text-xs text-muted-foreground">collected — see report</div>
             </div>
-          </div>
+          </button>
 
-          {/* Reports shortcut */}
+          {/* Reports → navigate to /reports */}
           <Link href="/reports" className="block no-print">
-            <div className="bg-primary/8 border border-primary/15 rounded-lg p-4 flex items-start gap-3 hover:bg-primary/12 transition-colors cursor-pointer h-full">
+            <div className={`${cardPrimary} h-full`}>
               <div className="bg-primary/15 rounded-md p-1.5 mt-0.5 shrink-0">
                 <BarChart2 className="w-4 h-4 text-primary" />
               </div>
@@ -163,16 +227,14 @@ export function Dashboard() {
           </Link>
         </div>
 
-        {/* Add borrower button */}
         <Button onClick={() => setShowAdd(true)} className="w-full h-10 no-print" data-testid="button-add-borrower">
           <Plus className="w-4 h-4 mr-2" /> Add New Borrower
         </Button>
       </header>
 
       {/* Main */}
-      <main className="flex-1 p-4 sm:p-6 space-y-8 overflow-x-auto">
+      <main ref={tableRef} className="flex-1 p-4 sm:p-6 space-y-8 overflow-x-auto scroll-mt-4">
 
-        {/* Pending section */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h2>
@@ -183,7 +245,6 @@ export function Dashboard() {
           <BorrowerTable rows={pending} emptyMessage="No pending borrowers." />
         </section>
 
-        {/* Eligible section */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <h2 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Eligible</h2>
@@ -197,6 +258,7 @@ export function Dashboard() {
       </main>
 
       <AddBorrowerForm open={showAdd} onOpenChange={setShowAdd} addBorrower={addBorrower} />
+      <AllLoansDialog open={showLoans} onOpenChange={setShowLoans} borrowers={borrowers} />
     </div>
   );
 }
