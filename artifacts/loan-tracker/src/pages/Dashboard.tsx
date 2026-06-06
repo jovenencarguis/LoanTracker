@@ -1,7 +1,7 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, Users } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2 } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { formatMoney } from "@/lib/utils";
 import { useState } from "react";
@@ -71,7 +71,14 @@ export function Dashboard() {
 
       {/* Header */}
       <header className="px-6 pt-10 pb-6 border-b border-border bg-card">
-        <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Loan Tracker</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-serif font-bold text-foreground">Loan Tracker</h1>
+          <Link href="/reports">
+            <Button variant="ghost" size="sm" className="h-8 text-muted-foreground hover:text-foreground no-print">
+              <BarChart2 className="w-4 h-4 mr-1.5" /> Reports
+            </Button>
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground mb-6">Borrowers Dashboard</p>
 
         <div className="grid grid-cols-2 gap-4">
