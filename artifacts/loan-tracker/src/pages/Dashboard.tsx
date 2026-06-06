@@ -1,7 +1,7 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, Users, BarChart2 } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2, CreditCard, TrendingUp } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { formatMoney } from "@/lib/utils";
 import { useState } from "react";
@@ -65,40 +65,76 @@ export function Dashboard() {
   const eligible = withOutstanding.filter(r => r.outstanding === 0);
 
   const totalOutstanding = pending.reduce((s, r) => s + r.outstanding, 0);
+  const totalLoans = borrowers.reduce((s, b) => s + b.loans.length, 0);
+  const totalCollected = borrowers.reduce((s, b) =>
+    s + b.loans.reduce((s2, l) =>
+      s2 + l.payments.reduce((s3, p) => s3 + p.totalCollected, 0), 0), 0);
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[700px] mx-auto bg-background flex flex-col print:max-w-none">
 
       {/* Header */}
-      <header className="px-6 pt-10 pb-6 border-b border-border bg-card">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-serif font-bold text-foreground">Loan Tracker</h1>
-          <Link href="/reports">
-            <Button variant="ghost" size="sm" className="h-8 text-muted-foreground hover:text-foreground no-print">
-              <BarChart2 className="w-4 h-4 mr-1.5" /> Reports
-            </Button>
+      <header className="px-6 pt-8 pb-6 border-b border-border bg-card">
+        <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Loan Tracker</h1>
+        <p className="text-sm text-muted-foreground mb-5">Borrowers Dashboard</p>
+
+        {/* Stat cards grid */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Borrowers */}
+          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+            <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Borrowers</div>
+              <div className="font-serif font-bold text-foreground text-lg leading-tight">{pending.length}</div>
+              <div className="text-xs text-muted-foreground">active</div>
+            </div>
+          </div>
+
+          {/* Loans */}
+          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+            <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
+              <Wallet className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Loans</div>
+              <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalOutstanding)}</div>
+              <div className="text-xs text-muted-foreground">{totalLoans} total loan{totalLoans !== 1 ? "s" : ""}</div>
+            </div>
+          </div>
+
+          {/* Payments collected */}
+          <div className="bg-secondary/50 rounded-lg p-4 flex items-start gap-3">
+            <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
+              <TrendingUp className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Payments</div>
+              <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalCollected)}</div>
+              <div className="text-xs text-muted-foreground">collected all time</div>
+            </div>
+          </div>
+
+          {/* Reports shortcut */}
+          <Link href="/reports" className="block no-print">
+            <div className="bg-primary/8 border border-primary/15 rounded-lg p-4 flex items-start gap-3 hover:bg-primary/12 transition-colors cursor-pointer h-full">
+              <div className="bg-primary/15 rounded-md p-1.5 mt-0.5 shrink-0">
+                <BarChart2 className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <div className="text-xs text-primary uppercase tracking-wide mb-0.5 font-medium">Reports</div>
+                <div className="text-sm font-medium text-foreground leading-tight">Monthly &amp; Yearly</div>
+                <div className="text-xs text-muted-foreground">view breakdown</div>
+              </div>
+            </div>
           </Link>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">Borrowers Dashboard</p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-secondary/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Wallet className="w-4 h-4" />
-              <span className="text-xs font-medium uppercase tracking-wider">Outstanding</span>
-            </div>
-            <div className="text-lg font-serif font-bold text-primary">{formatMoney(totalOutstanding)}</div>
-          </div>
-          <div className="bg-secondary/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Users className="w-4 h-4" />
-              <span className="text-xs font-medium uppercase tracking-wider">Active</span>
-            </div>
-            <div className="text-lg font-serif font-bold text-foreground">
-              {pending.length} <span className="text-sm font-sans font-normal text-muted-foreground">borrowers</span>
-            </div>
-          </div>
-        </div>
+        {/* Add borrower button */}
+        <Button onClick={() => setShowAdd(true)} className="w-full h-10 no-print" data-testid="button-add-borrower">
+          <Plus className="w-4 h-4 mr-2" /> Add New Borrower
+        </Button>
       </header>
 
       {/* Main */}
@@ -106,16 +142,11 @@ export function Dashboard() {
 
         {/* Pending section */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h2>
-              {pending.length > 0 && (
-                <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{pending.length}</span>
-              )}
-            </div>
-            <Button onClick={() => setShowAdd(true)} size="sm" className="h-8 no-print" data-testid="button-add-borrower">
-              <Plus className="w-3.5 h-3.5 mr-1" /> Add Borrower
-            </Button>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h2>
+            {pending.length > 0 && (
+              <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{pending.length}</span>
+            )}
           </div>
           <BorrowerTable rows={pending} emptyMessage="No pending borrowers." />
         </section>
