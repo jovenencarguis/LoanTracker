@@ -31,7 +31,7 @@ export function EditLoanForm({
   loan: Loan;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  updateLoan: (updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes">>) => void;
+  updateLoan: (updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes">>) => Promise<void>;
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,8 +52,8 @@ export function EditLoanForm({
     }
   }, [open, loan, form]);
 
-  function onSubmit(values: FormValues) {
-    updateLoan(values);
+  async function onSubmit(values: FormValues) {
+    await updateLoan(values);
     onOpenChange(false);
     toast.success("Loan updated");
   }

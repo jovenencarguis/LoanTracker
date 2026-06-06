@@ -26,7 +26,7 @@ export function AddBorrowerForm({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  addBorrower: (name: string) => Borrower;
+  addBorrower: (name: string) => Promise<Borrower>;
 }) {
   const [, setLocation] = useLocation();
 
@@ -35,8 +35,8 @@ export function AddBorrowerForm({
     defaultValues: { name: "" },
   });
 
-  function onSubmit(values: FormValues) {
-    const borrower = addBorrower(values.name);
+  async function onSubmit(values: FormValues) {
+    const borrower = await addBorrower(values.name);
     form.reset();
     onOpenChange(false);
     toast.success("Borrower added");
