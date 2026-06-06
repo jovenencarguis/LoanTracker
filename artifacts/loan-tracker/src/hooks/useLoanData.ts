@@ -27,7 +27,66 @@ export interface Borrower {
   loans: Loan[];
 }
 
+// ─── Storage versioning ────────────────────────────────────────────────────
+// IMPORTANT: Never rename STORAGE_KEY without adding the old key to LEGACY_KEYS.
+// The migration below will automatically carry data forward to the new key so
+// no user data is ever lost on upgrade.
 const STORAGE_KEY = "loanData_v2";
+const LEGACY_KEYS = ["loanData", "loanData_v1"];
+
+// ─── Migration: check older keys and promote to current key ───────────────
+function migrateFromLegacy(): Borrower[] | null {
+  for (const legacyKey of LEGACY_KEYS) {
+    const raw = localStorage.getItem(legacyKey);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      // Save under current key and clean up the old one
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      localStorage.removeItem(legacyKey);
+      console.info(`[LoanTracker] Migrated data from "${legacyKey}" → "${STORAGE_KEY}"`);
+      return parsed;
+    } catch {
+      console.warn(`[LoanTracker] Found legacy key "${legacyKey}" but could not parse it — skipping.`);
+    }
+  }
+  return null;
+}
+
+// ─── Export / Import helpers ───────────────────────────────────────────────
+export function exportData(): void {
+  const raw = localStorage.getItem(STORAGE_KEY) ?? "[]";
+  const blob = new Blob([raw], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `loan-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function importData(file: File): Promise<Borrower[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed: Borrower[] = JSON.parse(e.target?.result as string);
+        if (!Array.isArray(parsed)) throw new Error("Invalid format — expected an array.");
+        // Back up existing data before overwriting
+        const existing = localStorage.getItem(STORAGE_KEY);
+        if (existing) {
+          localStorage.setItem(`${STORAGE_KEY}_pre_import_backup`, existing);
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        resolve(parsed);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Could not read file."));
+    reader.readAsText(file);
+  });
+}
 
 export function useLoanData() {
   const [borrowers, setBorrowers] = useState<Borrower[]>([]);
@@ -35,10 +94,17 @@ export function useLoanData() {
 
   useEffect(() => {
     try {
+      // 1. Try current key first
       const data = localStorage.getItem(STORAGE_KEY);
-      if (data) setBorrowers(JSON.parse(data));
+      if (data) {
+        setBorrowers(JSON.parse(data));
+      } else {
+        // 2. Fall back to legacy keys and migrate if found
+        const migrated = migrateFromLegacy();
+        if (migrated) setBorrowers(migrated);
+      }
     } catch (e) {
-      console.error("Failed to load loan data", e);
+      console.error("[LoanTracker] Failed to load loan data — data left untouched.", e);
     }
     setIsLoaded(true);
   }, []);

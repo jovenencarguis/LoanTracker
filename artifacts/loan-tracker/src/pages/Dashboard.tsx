@@ -1,10 +1,11 @@
-import { useLoanData } from "@/hooks/useLoanData";
+import { useLoanData, exportData, importData } from "@/hooks/useLoanData";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Wallet, Users, BarChart2, CreditCard, TrendingUp } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { formatMoney } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { type Borrower } from "@/hooks/useLoanData";
 
 function BorrowerTable({ rows, emptyMessage }: { rows: { borrower: Borrower; outstanding: number }[]; emptyMessage: string }) {
@@ -53,6 +54,22 @@ function BorrowerTable({ rows, emptyMessage }: { rows: { borrower: Borrower; out
 export function Dashboard() {
   const { borrowers, isLoaded, addBorrower } = useLoanData();
   const [showAdd, setShowAdd] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    try {
+      await importData(file);
+      toast.success("Backup restored — reload to see your data.", {
+        action: { label: "Reload", onClick: () => window.location.reload() },
+        duration: 10000,
+      });
+    } catch (err: unknown) {
+      toast.error(`Import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  };
 
   if (!isLoaded) return null;
 
@@ -73,9 +90,24 @@ export function Dashboard() {
   return (
     <div className="min-h-[100dvh] w-full max-w-[700px] mx-auto bg-background flex flex-col print:max-w-none">
 
+      {/* Hidden file input for import */}
+      <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+
       {/* Header */}
       <header className="px-6 pt-8 pb-6 border-b border-border bg-card">
-        <h1 className="text-2xl font-serif font-bold text-foreground mb-1">Loan Tracker</h1>
+        <div className="flex items-start justify-between mb-1">
+          <h1 className="text-2xl font-serif font-bold text-foreground">Loan Tracker</h1>
+          <div className="flex items-center gap-1.5 no-print">
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+              onClick={() => exportData()}>
+              <Download className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+              onClick={() => importRef.current?.click()}>
+              <Upload className="w-3.5 h-3.5" /> Import
+            </Button>
+          </div>
+        </div>
         <p className="text-sm text-muted-foreground mb-5">Borrowers Dashboard</p>
 
         {/* Stat cards grid */}
