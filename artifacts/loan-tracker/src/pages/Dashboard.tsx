@@ -32,7 +32,7 @@ function BorrowersDialog({ open, onOpenChange, borrowers, onAddBorrower }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle className="font-serif flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" /> Borrowers
@@ -118,7 +118,7 @@ function AllLoansDialog({ open, onOpenChange, borrowers }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle className="font-serif">All Loans</DialogTitle>
           <DialogDescription>Browse all loans across every borrower. Tap a row to open its detail page.</DialogDescription>
@@ -235,7 +235,7 @@ function NotificationsDialog({ open, onOpenChange, notifications }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[82vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle className="font-serif flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" /> Payment Notifications
@@ -328,7 +328,7 @@ function QuickPaymentDialog({ open, onOpenChange, borrowers, addPayment }: {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <div className="flex items-center gap-2">
             {step.kind === "loans" && (
