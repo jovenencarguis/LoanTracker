@@ -22,7 +22,7 @@ import {
 export function BorrowerDetail() {
   const { borrowerId } = useParams();
   const [, setLocation] = useLocation();
-  const { getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, deleteLoan, markLoanAsPaid } = useLoanData();
+  const { borrowers, getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, deleteLoan, markLoanAsPaid } = useLoanData();
 
   const [showAddLoan, setShowAddLoan] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
@@ -165,7 +165,7 @@ export function BorrowerDetail() {
 
       <AddLoanForm borrowerId={borrowerId} open={showAddLoan} onOpenChange={setShowAddLoan} addLoan={addLoan} />
 
-      <EditBorrowerForm borrower={borrower} open={showEditBorrower} onOpenChange={setShowEditBorrower} updateBorrower={updateBorrower} />
+      <EditBorrowerForm borrower={borrower} open={showEditBorrower} onOpenChange={setShowEditBorrower} updateBorrower={updateBorrower} existingBorrowers={borrowers} />
 
       {/* Delete Borrower */}
       <AlertDialog open={showDeleteBorrower} onOpenChange={setShowDeleteBorrower}>
