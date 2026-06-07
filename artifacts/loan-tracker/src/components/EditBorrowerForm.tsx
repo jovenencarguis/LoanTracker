@@ -24,11 +24,13 @@ export function EditBorrowerForm({
   open,
   onOpenChange,
   updateBorrower,
+  existingBorrowers,
 }: {
   borrower: Borrower;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   updateBorrower: (id: string, name: string) => Promise<void>;
+  existingBorrowers: Borrower[];
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -40,7 +42,15 @@ export function EditBorrowerForm({
   }, [open, borrower, form]);
 
   async function onSubmit(values: FormValues) {
-    await updateBorrower(borrower.id, values.name);
+    const trimmed = values.name.trim();
+    const isDuplicate = existingBorrowers.some(
+      b => b.id !== borrower.id && b.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setError("name", { message: "A borrower with this name already exists" });
+      return;
+    }
+    await updateBorrower(borrower.id, trimmed);
     onOpenChange(false);
     toast.success("Name updated");
   }

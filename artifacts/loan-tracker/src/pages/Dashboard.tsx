@@ -542,7 +542,7 @@ export function Dashboard() {
 
       </main>
 
-      <AddBorrowerForm open={showAdd} onOpenChange={setShowAdd} addBorrower={addBorrower} />
+      <AddBorrowerForm open={showAdd} onOpenChange={setShowAdd} addBorrower={addBorrower} existingBorrowers={borrowers} />
       <AllLoansDialog open={showLoans} onOpenChange={setShowLoans} borrowers={borrowers} />
       <QuickPaymentDialog
         open={showPayment}

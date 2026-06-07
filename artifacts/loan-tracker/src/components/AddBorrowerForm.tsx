@@ -23,10 +23,12 @@ export function AddBorrowerForm({
   open,
   onOpenChange,
   addBorrower,
+  existingBorrowers,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   addBorrower: (name: string) => Promise<Borrower>;
+  existingBorrowers: Borrower[];
 }) {
   const [, setLocation] = useLocation();
 
@@ -36,7 +38,15 @@ export function AddBorrowerForm({
   });
 
   async function onSubmit(values: FormValues) {
-    const borrower = await addBorrower(values.name);
+    const trimmed = values.name.trim();
+    const isDuplicate = existingBorrowers.some(
+      b => b.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setError("name", { message: "A borrower with this name already exists" });
+      return;
+    }
+    const borrower = await addBorrower(trimmed);
     form.reset();
     onOpenChange(false);
     toast.success("Borrower added");
