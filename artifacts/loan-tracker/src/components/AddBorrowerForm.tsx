@@ -55,27 +55,31 @@ export function AddBorrowerForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="font-serif">Add Borrower</DialogTitle>
-          <DialogDescription>Enter the borrower's name. You can add loans after.</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[400px] p-0 flex flex-col gap-0 overflow-hidden">
+        <div className="px-6 pt-6 pb-4 shrink-0">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Add Borrower</DialogTitle>
+            <DialogDescription>Enter the borrower's name. You can add loans after.</DialogDescription>
+          </DialogHeader>
+        </div>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Borrower Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Jane Doe" {...field} data-testid="input-name" autoFocus />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="pt-2 flex justify-end gap-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-2 space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Borrower Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Jane Doe" {...field} data-testid="input-name" autoFocus />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="shrink-0 px-6 py-4 border-t border-border flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" data-testid="button-submit-borrower">Add Borrower</Button>
             </div>
