@@ -1,5 +1,5 @@
 import { useLoanData, exportData, importData } from "@/hooks/useLoanData";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,46 +16,94 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { type Borrower, type Loan } from "@/hooks/useLoanData";
 
-function BorrowerTable({ rows, emptyMessage }: { rows: { borrower: Borrower; outstanding: number }[]; emptyMessage: string }) {
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-lg border border-border px-4 py-6 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </div>
-    );
-  }
+
+function BorrowersDialog({ open, onOpenChange, borrowers, onAddBorrower }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  borrowers: Borrower[];
+  onAddBorrower: () => void;
+}) {
+  const withOutstanding = borrowers.map(b => ({
+    borrower: b,
+    outstanding: b.loans.reduce((s, l) => s + l.currentBalance, 0),
+  }));
+  const pending = withOutstanding.filter(r => r.outstanding > 0);
+  const eligible = withOutstanding.filter(r => r.outstanding === 0);
 
   return (
-    <div className="rounded-lg border border-border overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-secondary/60 text-left">
-            <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border whitespace-nowrap">#</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border whitespace-nowrap">Name</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap">Loans</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Outstanding</th>
-            <th className="px-4 py-3 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap no-print">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ borrower: b, outstanding }, i) => (
-            <tr key={b.id} className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${i % 2 === 0 ? "" : "bg-secondary/10"}`} data-testid={`borrower-row-${b.id}`}>
-              <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
-              <td className="px-4 py-3 font-medium">{b.name}</td>
-              <td className="px-4 py-3 text-center">
-                <span className="text-xs font-medium bg-secondary px-2 py-0.5 rounded-full">{b.loans.length}</span>
-              </td>
-              <td className="px-4 py-3 text-right font-serif font-medium text-primary">{formatMoney(outstanding)}</td>
-              <td className="px-4 py-3 text-center no-print">
-                <Link href={`/borrowers/${b.id}`}>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" data-testid={`button-view-${b.id}`}>View</Button>
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-serif flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" /> Borrowers
+          </DialogTitle>
+          <DialogDescription>
+            All borrowers — pending have an outstanding balance, eligible are settled.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Button onClick={() => { onOpenChange(false); onAddBorrower(); }} className="w-full h-9 mt-1" size="sm">
+          <Plus className="w-4 h-4 mr-2" /> Add New Borrower
+        </Button>
+
+        {borrowers.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">No borrowers yet. Add one above.</p>
+        ) : (
+          <div className="space-y-5 mt-2">
+            {pending.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h3>
+                  <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{pending.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {pending.map(({ borrower: b, outstanding }, i) => (
+                    <Link key={b.id} href={`/borrowers/${b.id}`} onClick={() => onOpenChange(false)}>
+                      <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center justify-between gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`}>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{b.name}</div>
+                          <div className="text-xs text-muted-foreground">{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-serif font-bold text-sm text-primary">{formatMoney(outstanding)}</div>
+                          <div className="text-xs text-muted-foreground">outstanding</div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {eligible.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Eligible</h3>
+                  <span className="text-xs font-medium bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">{eligible.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {eligible.map(({ borrower: b }, i) => (
+                    <Link key={b.id} href={`/borrowers/${b.id}`} onClick={() => onOpenChange(false)}>
+                      <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center justify-between gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`}>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{b.name}</div>
+                          <div className="text-xs text-muted-foreground">{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-serif font-bold text-sm text-green-600">Settled</div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -367,12 +415,11 @@ function QuickPaymentDialog({ open, onOpenChange, borrowers, addPayment }: {
 export function Dashboard() {
   const { borrowers, isLoaded, addBorrower, addPayment } = useLoanData();
   const [showAdd, setShowAdd] = useState(false);
+  const [showBorrowers, setShowBorrowers] = useState(false);
   const [showLoans, setShowLoans] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
-  const tableRef = useRef<HTMLElement>(null);
-  const [, navigate] = useLocation();
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -387,10 +434,6 @@ export function Dashboard() {
     } catch (err: unknown) {
       toast.error(`Import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
-  };
-
-  const scrollToBorrowers = () => {
-    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   if (!isLoaded) return null;
@@ -461,15 +504,15 @@ export function Dashboard() {
         {/* Stat cards — each is clickable */}
         <div className="grid grid-cols-2 gap-3 mb-3">
 
-          {/* Borrowers → scroll to table */}
-          <button type="button" className={`${cardDefault} w-full text-left`} onClick={scrollToBorrowers}>
+          {/* Borrowers → open borrowers dialog */}
+          <button type="button" className={`${cardDefault} w-full text-left`} onClick={() => setShowBorrowers(true)}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <Users className="w-4 h-4 text-primary" />
             </div>
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Borrowers</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{pending.length}</div>
-              <div className="text-xs text-muted-foreground">active ↓</div>
+              <div className="text-xs text-muted-foreground">active — view all</div>
             </div>
           </button>
 
@@ -517,31 +560,12 @@ export function Dashboard() {
         </Button>
       </header>
 
-      {/* Main */}
-      <main ref={tableRef} className="flex-1 p-4 sm:p-6 space-y-8 overflow-x-auto scroll-mt-4">
-
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h2>
-            {pending.length > 0 && (
-              <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{pending.length}</span>
-            )}
-          </div>
-          <BorrowerTable rows={pending} emptyMessage="No pending borrowers." />
-        </section>
-
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Eligible</h2>
-            {eligible.length > 0 && (
-              <span className="text-xs font-medium bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">{eligible.length}</span>
-            )}
-          </div>
-          <BorrowerTable rows={eligible} emptyMessage="No eligible borrowers yet." />
-        </section>
-
-      </main>
-
+      <BorrowersDialog
+        open={showBorrowers}
+        onOpenChange={setShowBorrowers}
+        borrowers={borrowers}
+        onAddBorrower={() => setShowAdd(true)}
+      />
       <AddBorrowerForm open={showAdd} onOpenChange={setShowAdd} addBorrower={addBorrower} existingBorrowers={borrowers} />
       <AllLoansDialog open={showLoans} onOpenChange={setShowLoans} borrowers={borrowers} />
       <QuickPaymentDialog
