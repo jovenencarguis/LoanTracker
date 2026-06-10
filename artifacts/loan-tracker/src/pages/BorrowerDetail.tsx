@@ -1,7 +1,7 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, PenLine, Trash2, Calendar, Percent, FileText } from "lucide-react";
+import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
 import { AddLoanForm } from "@/components/AddLoanForm";
@@ -39,6 +39,10 @@ export function BorrowerDetail() {
   const totalOutstanding = borrower.loans.reduce((s, l) => s + l.currentBalance, 0);
   const activeLoans = borrower.loans.filter(l => l.currentBalance > 0).length;
 
+  const avatarColors = ["bg-emerald-700","bg-blue-600","bg-violet-600","bg-rose-600","bg-amber-600","bg-teal-600","bg-cyan-700","bg-indigo-600"];
+  const avatarBg = avatarColors[borrower.name.split("").reduce((a,c) => a + c.charCodeAt(0), 0) % avatarColors.length];
+  const initials = (() => { const p = borrower.name.trim().split(/\s+/); return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase(); })();
+
   return (
     <div className="min-h-[100dvh] w-full max-w-[700px] mx-auto bg-background flex flex-col print:max-w-none">
 
@@ -59,11 +63,27 @@ export function BorrowerDetail() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-serif font-bold text-foreground mb-1">{borrower.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {borrower.loans.length} loan{borrower.loans.length !== 1 ? "s" : ""} · {activeLoans} active
-            </p>
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-serif font-bold text-lg select-none ${avatarBg}`}>
+              {initials}
+            </div>
+            <div>
+              <h1 className="text-2xl font-serif font-bold text-foreground mb-0.5">{borrower.name}</h1>
+              <p className="text-sm text-muted-foreground mb-1.5">
+                {borrower.loans.length} loan{borrower.loans.length !== 1 ? "s" : ""} · {activeLoans} active
+              </p>
+              {borrower.email && (
+                <a href={`mailto:${borrower.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0.5">
+                  <Mail className="w-3 h-3 shrink-0" /> {borrower.email}
+                </a>
+              )}
+              {borrower.phone && (
+                <a href={`tel:${borrower.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Phone className="w-3 h-3 shrink-0" /> {borrower.phone}
+                </a>
+              )}
+            </div>
           </div>
           <div className="bg-primary/8 border border-primary/15 rounded-lg px-4 py-3 text-center min-w-[130px] shrink-0">
             <div className="text-xs text-primary mb-1 uppercase tracking-wide font-medium">Total Outstanding</div>
@@ -119,7 +139,21 @@ export function BorrowerDetail() {
                       <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(loan.dateBorrowed)}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(loan.startingBalance)}</td>
                       <td className="px-3 py-2.5 text-center text-xs">{loan.interestRate}%</td>
-                      <td className="px-3 py-2.5 text-right font-serif font-medium text-primary">{formatMoney(loan.currentBalance)}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="font-serif font-medium text-primary">{formatMoney(loan.currentBalance)}</div>
+                        {loan.startingBalance > 0 && (
+                          <div className="mt-1 h-1 bg-secondary rounded-full overflow-hidden min-w-[56px]">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${Math.min(100, Math.round(((loan.startingBalance - loan.currentBalance) / loan.startingBalance) * 100))}%`,
+                                background: loan.currentBalance <= 0 ? "rgb(22 163 74)" : "var(--color-primary)",
+                                opacity: loan.currentBalance <= 0 ? 1 : 0.6,
+                              }}
+                            />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2.5 text-center">
                         {settled ? (
                           <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Settled</span>

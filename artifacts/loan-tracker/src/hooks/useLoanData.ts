@@ -25,6 +25,8 @@ export interface Loan {
 export interface Borrower {
   id: string;
   name: string;
+  email?: string;
+  phone?: string;
   loans: Loan[];
 }
 
@@ -152,14 +154,14 @@ export function useLoanData() {
     await dbWrite(next);
   }, []);
 
-  const addBorrower = useCallback(async (name: string) => {
-    const b: Borrower = { id: crypto.randomUUID(), name, loans: [] };
+  const addBorrower = useCallback(async (name: string, email?: string, phone?: string) => {
+    const b: Borrower = { id: crypto.randomUUID(), name, email, phone, loans: [] };
     await saveBorrowers([...borrowers, b]);
     return b;
   }, [borrowers, saveBorrowers]);
 
-  const updateBorrower = useCallback(async (id: string, name: string) => {
-    await saveBorrowers(borrowers.map(b => b.id === id ? { ...b, name } : b));
+  const updateBorrower = useCallback(async (id: string, name: string, email?: string, phone?: string) => {
+    await saveBorrowers(borrowers.map(b => b.id === id ? { ...b, name, email, phone } : b));
   }, [borrowers, saveBorrowers]);
 
   const deleteBorrower = useCallback(async (id: string) => {
