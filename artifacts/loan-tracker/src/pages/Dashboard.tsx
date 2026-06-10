@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, ChevronLeft, Bell } from "lucide-react";
+import { Plus, Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, ChevronLeft, Bell, UserPlus, CreditCard } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { formatMoney } from "@/lib/utils";
@@ -555,9 +555,36 @@ export function Dashboard() {
           </Link>
         </div>
 
-        <Button onClick={() => setShowAdd(true)} className="w-full h-10 no-print" data-testid="button-add-borrower">
-          <Plus className="w-4 h-4 mr-2" /> Add New Borrower
-        </Button>
+        {/* Quick action buttons */}
+        <div className="grid grid-cols-3 gap-2 no-print">
+          <Button
+            onClick={() => setShowAdd(true)}
+            className="flex flex-col h-auto py-3 gap-1.5"
+            data-testid="button-add-borrower"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span className="text-xs font-medium">Add Borrower</span>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPayment(true)}
+            className="flex flex-col h-auto py-3 gap-1.5"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span className="text-xs font-medium">Add Payment</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowPayment(false)}
+            className="flex flex-col h-auto py-3 gap-1.5"
+            asChild
+          >
+            <Link href="/reports">
+              <BarChart2 className="w-4 h-4" />
+              <span className="text-xs font-medium">Reports</span>
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <BorrowersDialog
