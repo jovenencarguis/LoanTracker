@@ -15,6 +15,8 @@ import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -27,14 +29,14 @@ export function AddBorrowerForm({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  addBorrower: (name: string) => Promise<Borrower>;
+  addBorrower: (name: string, email?: string, phone?: string) => Promise<Borrower>;
   existingBorrowers: Borrower[];
 }) {
   const [, setLocation] = useLocation();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", email: "", phone: "" },
   });
 
   async function onSubmit(values: FormValues) {
@@ -46,7 +48,9 @@ export function AddBorrowerForm({
       form.setError("name", { message: "A borrower with this name already exists" });
       return;
     }
-    const borrower = await addBorrower(trimmed);
+    const email = values.email?.trim() || undefined;
+    const phone = values.phone?.trim() || undefined;
+    const borrower = await addBorrower(trimmed, email, phone);
     form.reset();
     onOpenChange(false);
     toast.success("Borrower added");
@@ -59,29 +63,43 @@ export function AddBorrowerForm({
         <div className="px-6 pt-6 pb-4 shrink-0">
           <DialogHeader>
             <DialogTitle className="font-serif">Add Borrower</DialogTitle>
-            <DialogDescription>Enter the borrower's name. You can add loans after.</DialogDescription>
+            <DialogDescription>Name is required. Contact details are optional.</DialogDescription>
           </DialogHeader>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-2 space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Borrower Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Jane Doe" {...field} data-testid="input-name" autoFocus />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Jane Doe" {...field} autoFocus />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="email" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="jane@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="phone" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                  <FormControl>
+                    <Input type="tel" placeholder="+1 555 000 0000" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
             <div className="shrink-0 px-6 py-4 border-t border-border flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" data-testid="button-submit-borrower">Add Borrower</Button>
+              <Button type="submit">Add Borrower</Button>
             </div>
           </form>
         </Form>
