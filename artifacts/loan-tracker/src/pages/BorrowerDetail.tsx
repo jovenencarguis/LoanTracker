@@ -185,18 +185,13 @@ export function BorrowerDetail() {
       <main className="flex-1 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Loans</h2>
-          <Button
-            onClick={() => {
-              const hasPending = borrower.loans.some(l => l.currentBalance > 0);
-              if (hasPending) {
-                toast.error("Cannot add a new loan — this borrower still has an outstanding balance on an existing loan.");
-                return;
-              }
-              setShowAddLoan(true);
-            }}
-            size="sm" className="h-8 no-print" data-testid="button-add-loan">
-            <Plus className="w-3.5 h-3.5 mr-1" /> Add Loan
-          </Button>
+          {activeLoans === 0 && (
+            <Button
+              onClick={() => setShowAddLoan(true)}
+              size="sm" className="h-8 no-print" data-testid="button-add-loan">
+              <Plus className="w-3.5 h-3.5 mr-1" /> Add Loan
+            </Button>
+          )}
         </div>
 
         {borrower.loans.length === 0 ? (
