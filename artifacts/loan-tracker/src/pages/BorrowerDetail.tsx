@@ -1,7 +1,7 @@
 import { useLoanData, type Loan } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent } from "lucide-react";
+import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
 import { AddLoanForm } from "@/components/AddLoanForm";
@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function PaymentHistoryTable({ loan, onDeletePayment }: { loan: Loan; onDeletePayment: (paymentId: string) => void }) {
+function PaymentHistoryTable({ loan, onDeletePayment, hideActions }: { loan: Loan; onDeletePayment: (paymentId: string) => void; hideActions?: boolean }) {
+  const colCount = hideActions ? 7 : 8;
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm border-collapse" data-testid="payment-history-table">
@@ -34,7 +35,9 @@ function PaymentHistoryTable({ loan, onDeletePayment }: { loan: Loan; onDeletePa
             <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Principal</th>
             <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">Total Collected</th>
             <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-right whitespace-nowrap">New Balance</th>
-            <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap no-print">Action</th>
+            {!hideActions && (
+              <th className="px-3 py-2.5 font-medium text-muted-foreground border-b border-border text-center whitespace-nowrap no-print">Action</th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -46,12 +49,12 @@ function PaymentHistoryTable({ loan, onDeletePayment }: { loan: Loan; onDeletePa
             <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
             <td className="px-3 py-2.5 text-right text-muted-foreground">—</td>
             <td className="px-3 py-2.5 text-right font-serif font-medium">{formatMoney(loan.startingBalance)}</td>
-            <td className="px-3 py-2.5 no-print" />
+            {!hideActions && <td className="px-3 py-2.5 no-print" />}
           </tr>
 
           {loan.payments.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground text-sm">No payments recorded yet.</td>
+              <td colSpan={colCount} className="px-3 py-8 text-center text-muted-foreground text-sm">No payments recorded yet.</td>
             </tr>
           ) : (
             loan.payments.map((payment, i) => {
@@ -67,11 +70,13 @@ function PaymentHistoryTable({ loan, onDeletePayment }: { loan: Loan; onDeletePa
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs font-medium">{formatMoney(payment.totalCollected)}</td>
                   <td className="px-3 py-2.5 text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</td>
-                  <td className="px-3 py-2.5 text-center no-print">
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDeletePayment(payment.id)} data-testid={`button-delete-payment-${payment.id}`}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </td>
+                  {!hideActions && (
+                    <td className="px-3 py-2.5 text-center no-print">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDeletePayment(payment.id)} data-testid={`button-delete-payment-${payment.id}`}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               );
             })
@@ -79,7 +84,7 @@ function PaymentHistoryTable({ loan, onDeletePayment }: { loan: Loan; onDeletePa
 
           {loan.currentBalance === 0 && loan.payments.length > 0 && (
             <tr className="bg-green-50/50">
-              <td colSpan={8} className="px-3 py-3 text-center text-sm font-medium text-green-700">Loan fully settled</td>
+              <td colSpan={colCount} className="px-3 py-3 text-center text-sm font-medium text-green-700">Loan fully settled</td>
             </tr>
           )}
         </tbody>
@@ -103,6 +108,7 @@ export function BorrowerDetail() {
   const [addPaymentLoanId, setAddPaymentLoanId] = useState<string | null>(null);
   const [editLoanId, setEditLoanId] = useState<string | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<{ loanId: string; paymentId: string } | null>(null);
+  const [screenshotLoanId, setScreenshotLoanId] = useState<string | null>(null);
 
   const hasAutoExpanded = useRef(false);
   const expandedRef = useRef<HTMLDivElement>(null);
@@ -140,6 +146,7 @@ export function BorrowerDetail() {
   const activeLoans = borrower.loans.filter(l => l.currentBalance > 0).length;
   const addPaymentLoan = addPaymentLoanId ? borrower.loans.find(l => l.id === addPaymentLoanId) : undefined;
   const editLoan = editLoanId ? borrower.loans.find(l => l.id === editLoanId) : undefined;
+  const screenshotLoan = screenshotLoanId ? borrower.loans.find(l => l.id === screenshotLoanId) : undefined;
 
   const avatarColors = ["bg-emerald-700","bg-blue-600","bg-violet-600","bg-rose-600","bg-amber-600","bg-teal-600","bg-cyan-700","bg-indigo-600"];
   const avatarBg = avatarColors[borrower.name.split("").reduce((a,c) => a + c.charCodeAt(0), 0) % avatarColors.length];
@@ -286,7 +293,7 @@ export function BorrowerDetail() {
                           <span className="flex items-center gap-1.5"><Percent className="w-3.5 h-3.5" /> {loan.interestRate}% per period</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => window.print()} className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Print record">
+                          <Button variant="ghost" size="icon" onClick={() => setScreenshotLoanId(loan.id)} className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Screenshot-friendly view" data-testid={`button-screenshot-loan-${loan.id}`}>
                             <Printer className="w-3.5 h-3.5" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => setEditLoanId(loan.id)} className="h-7 w-7 text-muted-foreground hover:text-foreground">
