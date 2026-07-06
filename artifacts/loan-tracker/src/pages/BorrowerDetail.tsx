@@ -106,22 +106,34 @@ export function BorrowerDetail() {
 
   const hasAutoExpanded = useRef(false);
   const expandedRef = useRef<HTMLDivElement>(null);
+  const borrower = borrowerId ? getBorrower(borrowerId) : undefined;
 
   useEffect(() => {
     if (hasAutoExpanded.current) return;
+    if (!borrower) return;
+
     const params = new URLSearchParams(search);
     const loanParam = params.get("loan");
     if (loanParam) {
       setExpandedLoanId(loanParam);
       hasAutoExpanded.current = true;
       setTimeout(() => expandedRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+      return;
     }
-  }, [search]);
+
+    // No specific loan requested — auto-expand so payment history is visible
+    // without an extra click. Prefer the single active loan; otherwise the
+    // most recently borrowed loan.
+    const active = borrower.loans.filter(l => l.currentBalance > 0);
+    const defaultLoan = active.length === 1 ? active[0] : borrower.loans[borrower.loans.length - 1];
+    if (defaultLoan) {
+      setExpandedLoanId(defaultLoan.id);
+    }
+    hasAutoExpanded.current = true;
+  }, [search, borrower]);
 
   if (!isLoaded) return null;
   if (!borrowerId) return <NotFound />;
-
-  const borrower = getBorrower(borrowerId);
   if (!borrower) return <NotFound />;
 
   const totalOutstanding = borrower.loans.reduce((s, l) => s + l.currentBalance, 0);
