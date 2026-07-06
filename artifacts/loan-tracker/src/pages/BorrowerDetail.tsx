@@ -1,7 +1,7 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import NotFound from "./not-found";
 import { AddLoanForm } from "@/components/AddLoanForm";
