@@ -28,6 +28,7 @@ export interface Borrower {
   email?: string;
   phone?: string;
   loans: Loan[];
+  archived?: boolean;
 }
 
 // ─── Storage versioning ────────────────────────────────────────────────────
@@ -168,6 +169,10 @@ export function useLoanData() {
     await saveBorrowers(borrowers.filter(b => b.id !== id));
   }, [borrowers, saveBorrowers]);
 
+  const setBorrowerArchived = useCallback(async (id: string, archived: boolean) => {
+    await saveBorrowers(borrowers.map(b => b.id === id ? { ...b, archived } : b));
+  }, [borrowers, saveBorrowers]);
+
   const addLoan = useCallback(async (
     borrowerId: string,
     data: Omit<Loan, "id" | "currentBalance" | "payments">
@@ -276,7 +281,7 @@ export function useLoanData() {
 
   return {
     borrowers, isLoaded,
-    addBorrower, updateBorrower, deleteBorrower,
+    addBorrower, updateBorrower, deleteBorrower, setBorrowerArchived,
     addLoan, updateLoan, deleteLoan, markLoanAsPaid,
     addPayment, deletePayment,
     getBorrower, getLoan,
