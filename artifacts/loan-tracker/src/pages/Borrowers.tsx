@@ -87,7 +87,7 @@ export function Borrowers() {
           >
             <ArchiveRestore className="w-4 h-4" />
           </button>
-        ) : (
+        ) : opts.settled ? (
           <button
             type="button"
             onClick={() => handleArchive(b.id, b.name)}
@@ -97,7 +97,7 @@ export function Borrowers() {
           >
             <Archive className="w-4 h-4" />
           </button>
-        )}
+        ) : null}
       </div>
     );
   };
