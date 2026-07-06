@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { Dashboard } from "@/pages/Dashboard";
+import { Borrowers } from "@/pages/Borrowers";
 import { BorrowerDetail } from "@/pages/BorrowerDetail";
 import { LoanDetail } from "@/pages/LoanDetail";
 import { Reports } from "@/pages/Reports";
@@ -14,6 +15,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/borrowers" component={Borrowers} />
       <Route path="/borrowers/:borrowerId" component={BorrowerDetail} />
       <Route path="/borrowers/:borrowerId/loans/:loanId" component={LoanDetail} />
       <Route path="/reports" component={Reports} />

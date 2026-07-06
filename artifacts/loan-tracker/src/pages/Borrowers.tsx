@@ -1,0 +1,139 @@
+import { useLoanData } from "@/hooks/useLoanData";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, Plus, Users } from "lucide-react";
+import { formatMoney } from "@/lib/utils";
+import { AddBorrowerForm } from "@/components/AddBorrowerForm";
+import { useState } from "react";
+
+export function Borrowers() {
+  const [, setLocation] = useLocation();
+  const { borrowers, isLoaded, addBorrower } = useLoanData();
+  const [showAdd, setShowAdd] = useState(false);
+
+  if (!isLoaded) return null;
+
+  const withOutstanding = borrowers.map(b => ({
+    borrower: b,
+    outstanding: b.loans.reduce((s, l) => s + l.currentBalance, 0),
+  }));
+  const pending = withOutstanding.filter(r => r.outstanding > 0);
+  const eligible = withOutstanding.filter(r => r.outstanding === 0);
+
+  const avatarColors = ["bg-emerald-700", "bg-blue-600", "bg-violet-600", "bg-rose-600", "bg-amber-600", "bg-teal-600", "bg-cyan-700", "bg-indigo-600"];
+  const getAvatar = (name: string) => {
+    const bg = avatarColors[name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % avatarColors.length];
+    const p = name.trim().split(/\s+/);
+    const initials = p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length - 1][0]).toUpperCase();
+    return { bg, initials };
+  };
+
+  return (
+    <div className="min-h-[100dvh] w-full max-w-[700px] mx-auto bg-background flex flex-col">
+      {/* Header */}
+      <header className="px-6 py-5 border-b border-border bg-card">
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Dashboard
+          </Link>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-serif font-bold text-foreground mb-1 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" /> Borrowers
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {borrowers.length} total · {pending.length} pending · {eligible.length} settled
+            </p>
+          </div>
+          <Button onClick={() => setShowAdd(true)} size="sm" className="h-9 shrink-0" data-testid="button-add-borrower">
+            <Plus className="w-4 h-4 mr-1.5" /> Add Borrower
+          </Button>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className="flex-1 p-4 sm:p-6">
+        {borrowers.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-16 text-center">No borrowers yet. Add one to get started.</p>
+        ) : (
+          <div className="space-y-6">
+            {pending.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Pending</h3>
+                  <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{pending.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {pending.map(({ borrower: b, outstanding }, i) => {
+                    const { bg, initials } = getAvatar(b.name);
+                    return (
+                      <Link key={b.id} href={`/borrowers/${b.id}`}>
+                        <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`} data-testid={`borrower-row-${b.id}`}>
+                          <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-serif font-bold text-sm select-none ${bg}`}>
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium truncate">{b.name}</div>
+                            <div className="text-xs text-muted-foreground">{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-serif font-bold text-sm text-primary">{formatMoney(outstanding)}</div>
+                            <div className="text-xs text-muted-foreground">outstanding</div>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {eligible.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Settled</h3>
+                  <span className="text-xs font-medium bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">{eligible.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {eligible.map(({ borrower: b }, i) => {
+                    const { bg, initials } = getAvatar(b.name);
+                    return (
+                      <Link key={b.id} href={`/borrowers/${b.id}`}>
+                        <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`} data-testid={`borrower-row-${b.id}`}>
+                          <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-serif font-bold text-sm select-none ${bg}`}>
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium truncate">{b.name}</div>
+                            <div className="text-xs text-muted-foreground">{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-serif font-bold text-sm text-green-600">Settled</div>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      <AddBorrowerForm
+        open={showAdd}
+        onOpenChange={setShowAdd}
+        addBorrower={async (name, email, phone) => {
+          const b = await addBorrower(name, email, phone);
+          setLocation(`/borrowers/${b.id}`);
+          return b;
+        }}
+        existingBorrowers={borrowers}
+      />
+    </div>
+  );
+}

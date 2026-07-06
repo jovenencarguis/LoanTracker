@@ -163,7 +163,7 @@ export function LoanDetail() {
       </main>
 
       <AddPaymentForm loan={loan} open={showAddPayment} onOpenChange={setShowAddPayment}
-        addPayment={(data) => addPayment(borrowerId, loanId, data)} />
+        addPayment={async (data) => { await addPayment(borrowerId, loanId, data); }} />
 
       <EditLoanForm loan={loan} open={showEditLoan} onOpenChange={setShowEditLoan}
         updateLoan={(updates) => updateLoan(borrowerId, loanId, updates)} />
