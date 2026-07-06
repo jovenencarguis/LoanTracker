@@ -1,11 +1,15 @@
 import { useLoanData } from "@/hooks/useLoanData";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Archive, ArchiveRestore, ChevronDown, Plus, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Archive, ArchiveRestore, CalendarClock, ChevronDown, Mail, Phone, Plus, Users, Wallet } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { useState } from "react";
 import { toast } from "sonner";
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 export function Borrowers() {
   const [, setLocation] = useLocation();
@@ -34,6 +38,17 @@ export function Borrowers() {
     return { bg, initials };
   };
 
+  const getBorrowerMeta = (b: (typeof borrowers)[number]) => {
+    const totalBorrowed = b.loans.reduce((s, l) => s + l.startingBalance, 0);
+    const totalCollected = b.loans.reduce((s, l) => s + l.payments.reduce((ps, p) => ps + p.totalCollected, 0), 0);
+    const allPayments = b.loans.flatMap(l => l.payments);
+    const lastPaymentDate = allPayments.length > 0
+      ? allPayments.reduce((latest, p) => (p.date > latest ? p.date : latest), allPayments[0].date)
+      : null;
+    const activeLoanCount = b.loans.filter(l => l.currentBalance > 0).length;
+    return { totalBorrowed, totalCollected, lastPaymentDate, activeLoanCount };
+  };
+
   const handleArchive = async (id: string, name: string) => {
     await setBorrowerArchived(id, true);
     toast.success(`${name} archived`);
@@ -51,21 +66,53 @@ export function Borrowers() {
     opts: { settled: boolean; archived: boolean }
   ) => {
     const { bg, initials } = getAvatar(b.name);
+    const { totalBorrowed, totalCollected, lastPaymentDate, activeLoanCount } = getBorrowerMeta(b);
     return (
       <div
         key={b.id}
-        className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors flex items-center gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`}
+        className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors flex items-start gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`}
         data-testid={`borrower-row-${b.id}`}
       >
-        <Link href={`/borrowers/${b.id}`} className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
-          <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-serif font-bold text-sm select-none ${bg}`}>
+        <Link href={`/borrowers/${b.id}`} className="flex items-start gap-3 min-w-0 flex-1 cursor-pointer">
+          <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white font-serif font-bold text-sm select-none mt-0.5 ${bg}`}>
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">{b.name}</div>
-            <div className="text-xs text-muted-foreground">{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-sm font-medium truncate">{b.name}</span>
+              {opts.archived && (
+                <span className="text-[10px] font-medium bg-secondary text-muted-foreground border border-border px-1.5 py-0.5 rounded-full shrink-0">Archived</span>
+              )}
+            </div>
+            {(b.email || b.phone) && (
+              <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                {b.email && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground truncate">
+                    <Mail className="w-3 h-3 shrink-0" /> {b.email}
+                  </span>
+                )}
+                {b.phone && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground truncate">
+                    <Phone className="w-3 h-3 shrink-0" /> {b.phone}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs text-muted-foreground">
+              <span>{b.loans.length} loan{b.loans.length !== 1 ? "s" : ""}{activeLoanCount > 0 ? ` (${activeLoanCount} active)` : ""}</span>
+              {totalBorrowed > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Wallet className="w-3 h-3 shrink-0" /> {formatMoney(totalBorrowed)} lent
+                </span>
+              )}
+              {lastPaymentDate && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarClock className="w-3 h-3 shrink-0" /> Last payment {formatDate(lastPaymentDate)}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="text-right shrink-0">
+          <div className="text-right shrink-0 pl-2">
             {opts.settled ? (
               <div className="font-serif font-bold text-sm text-green-600">Settled</div>
             ) : (
@@ -74,8 +121,11 @@ export function Borrowers() {
                 <div className="text-xs text-muted-foreground">outstanding</div>
               </>
             )}
+            {totalCollected > 0 && (
+              <div className="text-[11px] text-muted-foreground mt-0.5">{formatMoney(totalCollected)} collected</div>
+            )}
           </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
         </Link>
         {opts.archived ? (
           <button
