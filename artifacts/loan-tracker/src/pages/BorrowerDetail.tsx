@@ -148,34 +148,38 @@ export function BorrowerDetail() {
   return (
     <div className="min-h-[100dvh] w-full max-w-[900px] mx-auto bg-background flex flex-col print:max-w-none">
 
-      {/* Header */}
-      <header className="px-6 py-5 border-b border-border bg-card">
-        <div className="flex items-center justify-between mb-4 no-print">
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      {/* Header — profile style */}
+      <header className="relative bg-card border-b border-border">
+        {/* Cover backdrop */}
+        <div
+          className="h-24 sm:h-28 w-full"
+          style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, rgba(44,85,69,0.65) 100%)" }}
+        />
+
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-3 absolute top-0 left-0 right-0 no-print">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors drop-shadow-sm">
             <ArrowLeft className="w-4 h-4" /> Dashboard
           </Link>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setShowEditBorrower(true)} className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" onClick={() => setShowEditBorrower(true)} className="text-white/90 hover:text-white hover:bg-white/15">
               <PenLine className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowDeleteBorrower(true)} className="text-muted-foreground hover:text-destructive">
+            <Button variant="ghost" size="icon" onClick={() => setShowDeleteBorrower(true)} className="text-white/90 hover:text-white hover:bg-white/15">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-serif font-bold text-lg select-none ${avatarBg}`}>
+        <div className="px-4 sm:px-6 pb-5 -mt-10 sm:-mt-12">
+          <div className="flex flex-col items-center text-center">
+            <div className={`shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-white font-serif font-bold text-2xl sm:text-3xl select-none ring-4 ring-card shadow-md ${avatarBg}`}>
               {initials}
             </div>
-            <div>
-              <h1 className="text-2xl font-serif font-bold text-foreground mb-0.5">{borrower.name}</h1>
-              <p className="text-sm text-muted-foreground mb-1.5">
-                {borrower.loans.length} loan{borrower.loans.length !== 1 ? "s" : ""} · {activeLoans} active
-              </p>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mt-3">{borrower.name}</h1>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mt-2">
               {borrower.email && (
-                <a href={`mailto:${borrower.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-0.5">
+                <a href={`mailto:${borrower.email}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Mail className="w-3 h-3 shrink-0" /> {borrower.email}
                 </a>
               )}
@@ -185,10 +189,21 @@ export function BorrowerDetail() {
                 </a>
               )}
             </div>
-          </div>
-          <div className="bg-primary/8 border border-primary/15 rounded-lg px-4 py-3 text-center min-w-[130px] shrink-0">
-            <div className="text-xs text-primary mb-1 uppercase tracking-wide font-medium">Total Outstanding</div>
-            <div className="font-serif font-bold text-primary text-lg">{formatMoney(totalOutstanding)}</div>
+
+            <div className="flex items-stretch gap-2 sm:gap-3 mt-5 w-full max-w-sm">
+              <div className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-center">
+                <div className="font-serif font-bold text-lg text-foreground">{borrower.loans.length}</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wide mt-0.5">Loan{borrower.loans.length !== 1 ? "s" : ""}</div>
+              </div>
+              <div className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-center">
+                <div className="font-serif font-bold text-lg text-foreground">{activeLoans}</div>
+                <div className="text-[11px] text-muted-foreground uppercase tracking-wide mt-0.5">Active</div>
+              </div>
+              <div className="flex-[1.4] rounded-xl border border-primary/20 bg-primary/8 px-3 py-2.5 text-center">
+                <div className="font-serif font-bold text-lg text-primary">{formatMoney(totalOutstanding)}</div>
+                <div className="text-[11px] text-primary/80 uppercase tracking-wide mt-0.5">Outstanding</div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
