@@ -252,7 +252,7 @@ export function Dashboard() {
             </div>
           </Link>
 
-          {/* Loans → navigate to /loans */}
+          {/* Loans → navigate to /loans (browse all loans) */}
           <Link href="/loans" className={`${cardDefault} w-full text-left no-print`}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <Wallet className="w-4 h-4 text-primary" />
@@ -260,11 +260,11 @@ export function Dashboard() {
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Loans</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalOutstanding)}</div>
-              <div className="text-xs text-muted-foreground">{totalLoans} loan{totalLoans !== 1 ? "s" : ""} — view all</div>
+              <div className="text-xs text-muted-foreground">{totalLoans} loan{totalLoans !== 1 ? "s" : ""} outstanding — browse list</div>
             </div>
           </Link>
 
-          {/* Payments → navigate to /payments */}
+          {/* Payments → navigate to /payments (record a new payment) */}
           <Link href="/payments" className={`${cardDefault} w-full text-left no-print`}>
             <div className="bg-primary/10 rounded-md p-1.5 mt-0.5 shrink-0">
               <TrendingUp className="w-4 h-4 text-primary" />
@@ -272,7 +272,7 @@ export function Dashboard() {
             <div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Payments</div>
               <div className="font-serif font-bold text-foreground text-lg leading-tight">{formatMoney(totalCollected)}</div>
-              <div className="text-xs text-muted-foreground">collected — add payment</div>
+              <div className="text-xs text-muted-foreground">collected so far — tap to record new</div>
             </div>
           </Link>
 
