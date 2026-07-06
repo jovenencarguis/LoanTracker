@@ -8,7 +8,6 @@ import { Borrowers } from "@/pages/Borrowers";
 import { Loans } from "@/pages/Loans";
 import { Payments } from "@/pages/Payments";
 import { BorrowerDetail } from "@/pages/BorrowerDetail";
-import { LoanDetail } from "@/pages/LoanDetail";
 import { Reports } from "@/pages/Reports";
 
 const queryClient = new QueryClient();
@@ -21,7 +20,6 @@ function Router() {
       <Route path="/loans" component={Loans} />
       <Route path="/payments" component={Payments} />
       <Route path="/borrowers/:borrowerId" component={BorrowerDetail} />
-      <Route path="/borrowers/:borrowerId/loans/:loanId" component={LoanDetail} />
       <Route path="/reports" component={Reports} />
       <Route component={NotFound} />
     </Switch>

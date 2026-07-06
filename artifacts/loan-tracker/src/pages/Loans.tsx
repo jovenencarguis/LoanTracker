@@ -16,7 +16,7 @@ export function Loans() {
   const totalOutstanding = outstanding.reduce((s, { loan }) => s + loan.currentBalance, 0);
 
   const renderRow = ({ borrower: b, loan: l }: { borrower: typeof borrowers[number]; loan: typeof borrowers[number]["loans"][number] }, i: number) => (
-    <Link key={l.id} href={`/borrowers/${b.id}/loans/${l.id}`}>
+    <Link key={l.id} href={`/borrowers/${b.id}?loan=${l.id}`}>
       <div className={`rounded-lg border border-border p-3 hover:bg-secondary/40 transition-colors cursor-pointer flex items-center justify-between gap-3 ${i % 2 === 0 ? "bg-background" : "bg-secondary/10"}`} data-testid={`loan-row-${l.id}`}>
         <div className="min-w-0">
           <div className="text-sm font-medium truncate">{b.name}</div>

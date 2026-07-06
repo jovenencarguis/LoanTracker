@@ -122,7 +122,7 @@ function NotificationsDialog({ open, onOpenChange, notifications }: {
           {sorted.map(({ borrower: b, loan: l, status: s }) => (
             <Link
               key={`${b.id}-${l.id}`}
-              href={`/borrowers/${b.id}/loans/${l.id}`}
+              href={`/borrowers/${b.id}?loan=${l.id}`}
               onClick={() => onOpenChange(false)}
             >
               <div className={`rounded-lg border p-3 transition-colors hover:opacity-90 cursor-pointer ${STATUS_STYLES[s.kind]}`}>
