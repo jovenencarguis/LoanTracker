@@ -12,7 +12,7 @@ export function Loans() {
     b.loans.map(l => ({ borrower: b, loan: l }))
   );
   const outstanding = allLoans.filter(({ loan }) => loan.currentBalance > 0);
-  const settled = allLoans.filter(({ loan }) => loan.currentBalance === 0);
+  const settledCount = allLoans.length - outstanding.length;
   const totalOutstanding = outstanding.reduce((s, { loan }) => s + loan.currentBalance, 0);
 
   const renderRow = ({ borrower: b, loan: l }: { borrower: typeof borrowers[number]; loan: typeof borrowers[number]["loans"][number] }, i: number) => (
@@ -50,39 +50,20 @@ export function Loans() {
           <Wallet className="w-5 h-5 text-primary" /> Loans
         </h1>
         <p className="text-sm text-muted-foreground">
-          {allLoans.length} total · {formatMoney(totalOutstanding)} outstanding
+          {outstanding.length} outstanding · {formatMoney(totalOutstanding)}
+          {settledCount > 0 && ` · ${settledCount} settled`}
         </p>
       </header>
 
       {/* Main */}
       <main className="flex-1 p-4 sm:p-6">
-        {allLoans.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-16 text-center">No loans recorded yet.</p>
+        {outstanding.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-16 text-center">
+            {allLoans.length === 0 ? "No loans recorded yet." : "No outstanding loans — everyone's paid up."}
+          </p>
         ) : (
-          <div className="space-y-6">
-            {outstanding.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Outstanding</h3>
-                  <span className="text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">{outstanding.length}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {outstanding.map((r, i) => renderRow(r, i))}
-                </div>
-              </div>
-            )}
-
-            {settled.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Settled</h3>
-                  <span className="text-xs font-medium bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">{settled.length}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {settled.map((r, i) => renderRow(r, i))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-1.5">
+            {outstanding.map((r, i) => renderRow(r, i))}
           </div>
         )}
       </main>
