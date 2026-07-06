@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { Dashboard } from "@/pages/Dashboard";
 import { Borrowers } from "@/pages/Borrowers";
+import { Loans } from "@/pages/Loans";
+import { Payments } from "@/pages/Payments";
 import { BorrowerDetail } from "@/pages/BorrowerDetail";
 import { LoanDetail } from "@/pages/LoanDetail";
 import { Reports } from "@/pages/Reports";
@@ -16,6 +18,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/borrowers" component={Borrowers} />
+      <Route path="/loans" component={Loans} />
+      <Route path="/payments" component={Payments} />
       <Route path="/borrowers/:borrowerId" component={BorrowerDetail} />
       <Route path="/borrowers/:borrowerId/loans/:loanId" component={LoanDetail} />
       <Route path="/reports" component={Reports} />
