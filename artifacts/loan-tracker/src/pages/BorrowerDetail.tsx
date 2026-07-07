@@ -3,6 +3,7 @@ import { Link, useParams, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
+import { getPaymentStatus, statusLabel, BADGE_STYLES } from "@/lib/loanUtils";
 import NotFound from "./not-found";
 import { AddLoanForm } from "@/components/AddLoanForm";
 import { EditBorrowerForm } from "@/components/EditBorrowerForm";
@@ -288,7 +289,17 @@ export function BorrowerDetail() {
                         {settled ? (
                           <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Settled</span>
                         ) : (
-                          <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Active</span>
+                          <>
+                            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Active</span>
+                            {(() => {
+                              const ps = getPaymentStatus(loan);
+                              return (
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${BADGE_STYLES[ps.kind]}`}>
+                                  {statusLabel(ps)}
+                                </span>
+                              );
+                            })()}
+                          </>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">

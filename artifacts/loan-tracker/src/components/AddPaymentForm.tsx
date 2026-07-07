@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { type Loan } from "@/hooks/useLoanData";
 import { formatMoney } from "@/lib/utils";
+import { getNextDueDate } from "@/lib/loanUtils";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -33,15 +35,15 @@ export function AddPaymentForm({
   onOpenChange: (open: boolean) => void;
   addPayment: (data: { date: string; repayment: number; interest?: number }) => Promise<void>;
 }) {
-  function getEffectiveDate() {
-    if (!loan.payments || loan.payments.length === 0) return loan.dateBorrowed;
-    return loan.payments[loan.payments.length - 1].date;
-  }
+  const nextDue = getNextDueDate(loan);
+  const nextDueStr = format(nextDue, "yyyy-MM-dd");
+  const nextDueLabel = format(nextDue, "MMM d, yyyy");
+  const interval = loan.paymentIntervalDays ?? 30;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: getEffectiveDate(),
+      date: nextDueStr,
       repayment: "" as unknown as number,
       interest: loan.currentBalance * (loan.interestRate / 100),
     },
@@ -49,8 +51,9 @@ export function AddPaymentForm({
 
   useEffect(() => {
     if (open) {
+      const due = getNextDueDate(loan);
       form.reset({
-        date: getEffectiveDate(),
+        date: format(due, "yyyy-MM-dd"),
         repayment: "" as unknown as number,
         interest: loan.currentBalance * (loan.interestRate / 100),
       });
@@ -83,7 +86,9 @@ export function AddPaymentForm({
         <div className="px-6 pt-6 pb-2 shrink-0">
           <DialogHeader>
             <DialogTitle className="font-serif">Record Payment</DialogTitle>
-            <DialogDescription>Interest is auto-calculated. You can edit either amount before saving.</DialogDescription>
+            <DialogDescription>
+              Next due: <strong>{nextDueLabel}</strong> · every {interval} days
+            </DialogDescription>
           </DialogHeader>
         </div>
 

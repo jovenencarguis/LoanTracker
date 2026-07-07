@@ -8,79 +8,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Wallet, Users, BarChart2, TrendingUp, Download, Upload, ArrowRight, Bell, UserPlus, CreditCard } from "lucide-react";
+import { Wallet, Users, BarChart2, TrendingUp, Download, Upload, Bell, UserPlus, CreditCard } from "lucide-react";
 import { AddBorrowerForm } from "@/components/AddBorrowerForm";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { formatMoney } from "@/lib/utils";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { type Borrower, type Loan } from "@/hooks/useLoanData";
-
-// ── Payment due-date logic ─────────────────────────────────────────────────
-type PaymentStatus =
-  | { kind: "paid";      lastDate: string; nextDueDate: Date }
-  | { kind: "overdue";   lastDate: string; nextDueDate: Date; daysLate: number }
-  | { kind: "due-soon";  lastDate: string; nextDueDate: Date; daysLeft: number }
-  | { kind: "upcoming";  lastDate: string; nextDueDate: Date; daysLeft: number };
-
-function getPaymentStatus(loan: Loan): PaymentStatus {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const lastPayment = loan.payments.length > 0
-    ? loan.payments[loan.payments.length - 1]
-    : null;
-
-  const refDateStr = lastPayment ? lastPayment.date : loan.dateBorrowed;
-  const refDate = new Date(refDateStr);
-
-  // Paid if last payment is in the current calendar month
-  if (lastPayment) {
-    const lp = new Date(lastPayment.date);
-    if (lp.getMonth() === today.getMonth() && lp.getFullYear() === today.getFullYear()) {
-      const next = new Date(lp);
-      next.setMonth(next.getMonth() + 1);
-      return { kind: "paid", lastDate: lastPayment.date, nextDueDate: next };
-    }
-  }
-
-  // Next due = ref date + 1 month
-  const nextDue = new Date(refDate);
-  nextDue.setMonth(nextDue.getMonth() + 1);
-
-  const diffDays = Math.ceil((nextDue.getTime() - today.getTime()) / 86_400_000);
-
-  if (diffDays < 0)  return { kind: "overdue",  lastDate: refDateStr, nextDueDate: nextDue, daysLate: -diffDays };
-  if (diffDays <= 7) return { kind: "due-soon", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
-  return                    { kind: "upcoming", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
-}
+import {
+  type PaymentStatus,
+  getPaymentStatus,
+  fullStatusLabel,
+  STATUS_STYLES,
+  BADGE_STYLES,
+} from "@/lib/loanUtils";
 
 interface LoanNotification {
   borrower: Borrower;
   loan: Loan;
   status: PaymentStatus;
 }
-
-function statusLabel(s: PaymentStatus) {
-  if (s.kind === "paid")     return "Paid this month";
-  if (s.kind === "overdue")  return `Overdue by ${s.daysLate} day${s.daysLate !== 1 ? "s" : ""}`;
-  if (s.kind === "due-soon") return s.daysLeft === 0 ? "Due today!" : `Due in ${s.daysLeft} day${s.daysLeft !== 1 ? "s" : ""}`;
-  return `Due in ${(s as { daysLeft: number }).daysLeft} days`;
-}
-
-const STATUS_STYLES: Record<PaymentStatus["kind"], string> = {
-  overdue:   "bg-red-50 border-red-200 text-red-700",
-  "due-soon":"bg-amber-50 border-amber-200 text-amber-700",
-  upcoming:  "bg-blue-50 border-blue-200 text-blue-700",
-  paid:      "bg-green-50 border-green-200 text-green-700",
-};
-
-const BADGE_STYLES: Record<PaymentStatus["kind"], string> = {
-  overdue:   "bg-red-100 text-red-700 border border-red-200",
-  "due-soon":"bg-amber-100 text-amber-700 border border-amber-200",
-  upcoming:  "bg-blue-100 text-blue-700 border border-blue-200",
-  paid:      "bg-green-100 text-green-700 border border-green-200",
-};
 
 function NotificationsDialog({ open, onOpenChange, notifications }: {
   open: boolean;
@@ -132,11 +79,11 @@ function NotificationsDialog({ open, onOpenChange, notifications }: {
                     <div className="text-xs opacity-70">{formatMoney(l.startingBalance)} loan · {l.interestRate}% interest</div>
                   </div>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${BADGE_STYLES[s.kind]}`}>
-                    {statusLabel(s)}
+                    {fullStatusLabel(s)}
                   </span>
                 </div>
                 <div className="flex gap-4 text-xs opacity-80">
-                  <span>Last payment: <strong>{s.lastDate}</strong></span>
+                  <span>Last: <strong>{s.lastDate}</strong></span>
                   <span>Next due: <strong>{fmt(s.nextDueDate)}</strong></span>
                 </div>
                 <div className="mt-1.5 text-xs opacity-70 font-medium">

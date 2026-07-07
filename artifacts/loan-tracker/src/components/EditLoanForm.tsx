@@ -17,6 +17,7 @@ import { useEffect } from "react";
 const formSchema = z.object({
   interestRate: z.coerce.number().min(0, "Cannot be negative"),
   dateBorrowed: z.string().min(1, "Date is required"),
+  paymentIntervalDays: z.coerce.number().int().min(1, "Must be at least 1 day"),
   notes: z.string().optional(),
 });
 
@@ -31,13 +32,14 @@ export function EditLoanForm({
   loan: Loan;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  updateLoan: (updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes">>) => Promise<void>;
+  updateLoan: (updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes" | "paymentIntervalDays">>) => Promise<void>;
 }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       interestRate: loan.interestRate,
       dateBorrowed: loan.dateBorrowed,
+      paymentIntervalDays: loan.paymentIntervalDays ?? 30,
       notes: loan.notes || "",
     },
   });
@@ -47,6 +49,7 @@ export function EditLoanForm({
       form.reset({
         interestRate: loan.interestRate,
         dateBorrowed: loan.dateBorrowed,
+        paymentIntervalDays: loan.paymentIntervalDays ?? 30,
         notes: loan.notes || "",
       });
     }
@@ -85,18 +88,32 @@ export function EditLoanForm({
                 />
                 <FormField
                   control={form.control}
-                  name="dateBorrowed"
+                  name="paymentIntervalDays"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date Borrowed</FormLabel>
+                      <FormLabel>Payment every (days)</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} data-testid="edit-loan-date" />
+                        <Input type="number" min="1" {...field} data-testid="edit-loan-interval" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="dateBorrowed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date Borrowed</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} data-testid="edit-loan-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
