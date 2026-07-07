@@ -1,7 +1,7 @@
-import { useLoanData, type Loan } from "@/hooks/useLoanData";
+import { useLoanData, type Loan, type SkipRecord } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X } from "lucide-react";
+import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X, SkipForward } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { getPaymentStatus, statusLabel, BADGE_STYLES } from "@/lib/loanUtils";
 import NotFound from "./not-found";
@@ -9,6 +9,7 @@ import { AddLoanForm } from "@/components/AddLoanForm";
 import { EditBorrowerForm } from "@/components/EditBorrowerForm";
 import { AddPaymentForm } from "@/components/AddPaymentForm";
 import { EditLoanForm } from "@/components/EditLoanForm";
+import { SkipPeriodForm } from "@/components/SkipPeriodForm";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
@@ -22,8 +23,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function PaymentHistoryTable({ loan, onDeletePayment, hideActions }: { loan: Loan; onDeletePayment: (paymentId: string) => void; hideActions?: boolean }) {
+type TableEvent =
+  | { kind: "payment"; seq: number; data: import("@/hooks/useLoanData").Payment }
+  | { kind: "skip";    seq: number; data: SkipRecord };
+
+function PaymentHistoryTable({
+  loan, onDeletePayment, onDeleteSkip, hideActions,
+}: {
+  loan: Loan;
+  onDeletePayment: (paymentId: string) => void;
+  onDeleteSkip?: (skipId: string) => void;
+  hideActions?: boolean;
+}) {
   const colCount = hideActions ? 7 : 8;
+
+  const events: TableEvent[] = [
+    ...loan.payments.map(p => ({ kind: "payment" as const, date: p.date, data: p })),
+    ...(loan.skips ?? []).map(s => ({ kind: "skip" as const, date: s.date, data: s })),
+  ]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((e, i) => ({ kind: e.kind, seq: i + 1, data: e.data } as TableEvent));
+
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full text-sm border-collapse" data-testid="payment-history-table">
@@ -42,6 +62,7 @@ function PaymentHistoryTable({ loan, onDeletePayment, hideActions }: { loan: Loa
           </tr>
         </thead>
         <tbody>
+          {/* Row 0 — loan origination */}
           <tr className="border-b border-border/50 bg-secondary/20">
             <td className="px-3 py-2.5 text-muted-foreground">0</td>
             <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{formatDate(loan.dateBorrowed)}</td>
@@ -53,29 +74,63 @@ function PaymentHistoryTable({ loan, onDeletePayment, hideActions }: { loan: Loa
             {!hideActions && <td className="px-3 py-2.5 no-print" />}
           </tr>
 
-          {loan.payments.length === 0 ? (
+          {events.length === 0 ? (
             <tr>
               <td colSpan={colCount} className="px-3 py-8 text-center text-muted-foreground text-sm">No payments recorded yet.</td>
             </tr>
           ) : (
-            loan.payments.map((payment, i) => {
-              const isInterestOnly = payment.type === "interest-only";
+            events.map((ev) => {
+              if (ev.kind === "payment") {
+                const payment = ev.data;
+                const isInterestOnly = payment.type === "interest-only";
+                return (
+                  <tr key={payment.id} className="border-b border-border/50 transition-colors hover:bg-secondary/30" data-testid={`payment-row-${payment.id}`}>
+                    <td className="px-3 py-2.5 text-muted-foreground">{ev.seq}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(payment.date)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.previousBalance)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.interest)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs">
+                      {isInterestOnly ? <span className="text-muted-foreground">—</span> : formatMoney(payment.repayment)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-medium">{formatMoney(payment.totalCollected)}</td>
+                    <td className="px-3 py-2.5 text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</td>
+                    {!hideActions && (
+                      <td className="px-3 py-2.5 text-center no-print">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDeletePayment(payment.id)} data-testid={`button-delete-payment-${payment.id}`}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              }
+
+              // Skip row
+              const skip = ev.data;
               return (
-                <tr key={payment.id} className={`border-b border-border/50 transition-colors hover:bg-secondary/30 ${i % 2 === 0 ? "" : "bg-secondary/10"}`} data-testid={`payment-row-${payment.id}`}>
-                  <td className="px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(payment.date)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.previousBalance)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">{formatMoney(payment.interest)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs">
-                    {isInterestOnly ? <span className="text-muted-foreground">—</span> : formatMoney(payment.repayment)}
+                <tr key={skip.id} className="border-b border-amber-100 bg-amber-50/60 transition-colors hover:bg-amber-50" data-testid={`skip-row-${skip.id}`}>
+                  <td className="px-3 py-2.5 text-amber-600">{ev.seq}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <span>{formatDate(skip.date)}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded">Deferred</span>
+                    </div>
+                    <div className="text-xs text-amber-600 mt-0.5">{skip.reason}</div>
                   </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs font-medium">{formatMoney(payment.totalCollected)}</td>
-                  <td className="px-3 py-2.5 text-right font-serif font-medium text-primary">{formatMoney(payment.newBalance)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-amber-700">{formatMoney(skip.previousBalance)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs text-amber-700">
+                    <span title="Capitalized — added to balance">+{formatMoney(skip.interestCapitalized)}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-amber-400">—</td>
+                  <td className="px-3 py-2.5 text-right text-amber-400">—</td>
+                  <td className="px-3 py-2.5 text-right font-serif font-medium text-amber-800">{formatMoney(skip.newBalance)}</td>
                   {!hideActions && (
                     <td className="px-3 py-2.5 text-center no-print">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDeletePayment(payment.id)} data-testid={`button-delete-payment-${payment.id}`}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      {onDeleteSkip && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => onDeleteSkip(skip.id)} data-testid={`button-delete-skip-${skip.id}`}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -83,7 +138,7 @@ function PaymentHistoryTable({ loan, onDeletePayment, hideActions }: { loan: Loa
             })
           )}
 
-          {loan.currentBalance === 0 && loan.payments.length > 0 && (
+          {loan.currentBalance === 0 && events.length > 0 && (
             <tr className="bg-green-50/50">
               <td colSpan={colCount} className="px-3 py-3 text-center text-sm font-medium text-green-700">Loan fully settled</td>
             </tr>
@@ -98,7 +153,7 @@ export function BorrowerDetail() {
   const { borrowerId } = useParams();
   const search = useSearch();
   const [, setLocation] = useLocation();
-  const { borrowers, getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, addPayment, updateLoan, deleteLoan, deletePayment, markLoanAsPaid } = useLoanData();
+  const { borrowers, getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, addPayment, updateLoan, deleteLoan, deletePayment, markLoanAsPaid, addSkip, deleteSkip } = useLoanData();
 
   const [showAddLoan, setShowAddLoan] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
@@ -107,8 +162,10 @@ export function BorrowerDetail() {
   const [loanToSettle, setLoanToSettle] = useState<string | null>(null);
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
   const [addPaymentLoanId, setAddPaymentLoanId] = useState<string | null>(null);
+  const [skipLoanId, setSkipLoanId] = useState<string | null>(null);
   const [editLoanId, setEditLoanId] = useState<string | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<{ loanId: string; paymentId: string } | null>(null);
+  const [skipToDelete, setSkipToDelete] = useState<{ loanId: string; skipId: string } | null>(null);
   const [screenshotLoanId, setScreenshotLoanId] = useState<string | null>(null);
 
   const hasAutoExpanded = useRef(false);
@@ -358,14 +415,20 @@ export function BorrowerDetail() {
 
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment History</h3>
-                        <Button onClick={() => setAddPaymentLoanId(loan.id)} disabled={settled} size="sm" className="h-8 no-print" data-testid={`button-add-payment-${loan.id}`}>
-                          <Plus className="w-3.5 h-3.5 mr-1" /> Add Payment
-                        </Button>
+                        <div className="flex items-center gap-1 no-print">
+                          <Button variant="outline" size="sm" className="h-8 text-amber-700 border-amber-200 hover:bg-amber-50 hover:border-amber-300" onClick={() => setSkipLoanId(loan.id)} disabled={settled} data-testid={`button-skip-period-${loan.id}`}>
+                            <SkipForward className="w-3.5 h-3.5 mr-1" /> Skip Period
+                          </Button>
+                          <Button onClick={() => setAddPaymentLoanId(loan.id)} disabled={settled} size="sm" className="h-8" data-testid={`button-add-payment-${loan.id}`}>
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add Payment
+                          </Button>
+                        </div>
                       </div>
 
                       <PaymentHistoryTable
                         loan={loan}
                         onDeletePayment={(paymentId) => setPaymentToDelete({ loanId: loan.id, paymentId })}
+                        onDeleteSkip={(skipId) => setSkipToDelete({ loanId: loan.id, skipId })}
                       />
                     </div>
                   )}
@@ -391,6 +454,22 @@ export function BorrowerDetail() {
           }}
         />
       )}
+
+      {skipLoanId && (() => {
+        const skipLoan = borrower.loans.find(l => l.id === skipLoanId);
+        return skipLoan ? (
+          <SkipPeriodForm
+            loan={skipLoan}
+            open={!!skipLoanId}
+            onOpenChange={(v) => { if (!v) setSkipLoanId(null); }}
+            addSkip={async (data) => {
+              await addSkip(borrowerId, skipLoan.id, data);
+              setSkipLoanId(null);
+              toast.success("Period skipped — interest capitalized to balance");
+            }}
+          />
+        ) : null;
+      })()}
 
       {editLoan && (
         <EditLoanForm
@@ -475,6 +554,22 @@ export function BorrowerDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (paymentToDelete) { deletePayment(borrowerId, paymentToDelete.loanId, paymentToDelete.paymentId); setPaymentToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Skip */}
+      <AlertDialog open={!!skipToDelete} onOpenChange={open => { if (!open) setSkipToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this deferred period?</AlertDialogTitle>
+            <AlertDialogDescription>The capitalized interest will be reversed and the balance recalculated. This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (skipToDelete) { deleteSkip(borrowerId, skipToDelete.loanId, skipToDelete.skipId); setSkipToDelete(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -12,6 +12,15 @@ export interface Payment {
   type: "regular" | "interest-only";
 }
 
+export interface SkipRecord {
+  id: string;
+  date: string;
+  reason: string;
+  previousBalance: number;
+  interestCapitalized: number;
+  newBalance: number;
+}
+
 export interface Loan {
   id: string;
   startingBalance: number;
@@ -21,6 +30,7 @@ export interface Loan {
   paymentIntervalDays?: number;
   notes?: string;
   payments: Payment[];
+  skips?: SkipRecord[];
 }
 
 export interface Borrower {
@@ -42,6 +52,16 @@ const RECORD_KEY = "borrowers";
 
 // Legacy localStorage keys — checked once on first run, then cleared
 const LEGACY_LS_KEYS = ["loanData_v2", "loanData_v1", "loanData"];
+
+// ─── Balance replay (used when deleting events) ───────────────────────────
+// Merges payments and skips by date order and returns the final balance.
+function replayBalance(startingBalance: number, payments: Payment[], skips: SkipRecord[]): number {
+  const events: { date: string; newBalance: number }[] = [
+    ...payments.map(p => ({ date: p.date, newBalance: p.newBalance })),
+    ...skips.map(s => ({ date: s.date, newBalance: s.newBalance })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  return events.length > 0 ? events[events.length - 1].newBalance : startingBalance;
+}
 
 // ─── Open / create the IndexedDB database ─────────────────────────────────
 let _db: IDBPDatabase | null = null;
@@ -264,12 +284,62 @@ export function useLoanData() {
     const loan = borrower.loans[li];
 
     const updatedPayments = loan.payments.filter(p => p.id !== paymentId);
-    const currentBalance = updatedPayments.length > 0
-      ? updatedPayments[updatedPayments.length - 1].newBalance
-      : loan.startingBalance;
+    const currentBalance = replayBalance(loan.startingBalance, updatedPayments, loan.skips ?? []);
 
     const updatedLoans = [...borrower.loans];
     updatedLoans[li] = { ...loan, payments: updatedPayments, currentBalance };
+    const next = [...borrowers];
+    next[bi] = { ...borrower, loans: updatedLoans };
+    await saveBorrowers(next);
+  }, [borrowers, saveBorrowers]);
+
+  const addSkip = useCallback(async (
+    borrowerId: string,
+    loanId: string,
+    data: { date: string; reason: string }
+  ) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return null;
+    const borrower = borrowers[bi];
+    const li = borrower.loans.findIndex(l => l.id === loanId);
+    if (li === -1) return null;
+    const loan = borrower.loans[li];
+
+    const previousBalance = loan.currentBalance;
+    const interestCapitalized = previousBalance * (loan.interestRate / 100);
+    const newBalance = previousBalance + interestCapitalized;
+
+    const skip: SkipRecord = {
+      id: crypto.randomUUID(),
+      date: data.date,
+      reason: data.reason,
+      previousBalance,
+      interestCapitalized,
+      newBalance,
+    };
+
+    const updatedSkips = [...(loan.skips ?? []), skip];
+    const updatedLoans = [...borrower.loans];
+    updatedLoans[li] = { ...loan, currentBalance: newBalance, skips: updatedSkips };
+    const next = [...borrowers];
+    next[bi] = { ...borrower, loans: updatedLoans };
+    await saveBorrowers(next);
+    return skip;
+  }, [borrowers, saveBorrowers]);
+
+  const deleteSkip = useCallback(async (borrowerId: string, loanId: string, skipId: string) => {
+    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    if (bi === -1) return;
+    const borrower = borrowers[bi];
+    const li = borrower.loans.findIndex(l => l.id === loanId);
+    if (li === -1) return;
+    const loan = borrower.loans[li];
+
+    const updatedSkips = (loan.skips ?? []).filter(s => s.id !== skipId);
+    const currentBalance = replayBalance(loan.startingBalance, loan.payments, updatedSkips);
+
+    const updatedLoans = [...borrower.loans];
+    updatedLoans[li] = { ...loan, skips: updatedSkips, currentBalance };
     const next = [...borrowers];
     next[bi] = { ...borrower, loans: updatedLoans };
     await saveBorrowers(next);
@@ -285,6 +355,7 @@ export function useLoanData() {
     addBorrower, updateBorrower, deleteBorrower, setBorrowerArchived,
     addLoan, updateLoan, deleteLoan, markLoanAsPaid,
     addPayment, deletePayment,
+    addSkip, deleteSkip,
     getBorrower, getLoan,
   };
 }

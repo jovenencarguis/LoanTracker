@@ -6,10 +6,19 @@ export type PaymentStatus =
   | { kind: "due-soon";  lastDate: string; nextDueDate: Date; daysLeft: number }
   | { kind: "upcoming";  lastDate: string; nextDueDate: Date; daysLeft: number };
 
+/** Returns the most recent event date (payment or skip), or null if none. */
+function lastEventDate(loan: Loan): string | null {
+  const allDates: string[] = [
+    ...loan.payments.map(p => p.date),
+    ...(loan.skips ?? []).map(s => s.date),
+  ].sort();
+  return allDates.length > 0 ? allDates[allDates.length - 1] : null;
+}
+
 export function getNextDueDate(loan: Loan): Date {
   const interval = loan.paymentIntervalDays ?? 30;
-  const lastPayment = loan.payments.length > 0 ? loan.payments[loan.payments.length - 1] : null;
-  const refDateStr = lastPayment ? lastPayment.date : loan.dateBorrowed;
+  const last = lastEventDate(loan);
+  const refDateStr = last ?? loan.dateBorrowed;
   const refDate = new Date(refDateStr + "T00:00:00");
   return new Date(refDate.getTime() + interval * 86_400_000);
 }
@@ -18,13 +27,13 @@ export function getPaymentStatus(loan: Loan): PaymentStatus {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const lastPayment = loan.payments.length > 0 ? loan.payments[loan.payments.length - 1] : null;
-  const refDateStr = lastPayment ? lastPayment.date : loan.dateBorrowed;
+  const last = lastEventDate(loan);
+  const refDateStr = last ?? loan.dateBorrowed;
   const nextDue = getNextDueDate(loan);
   const diffDays = Math.round((nextDue.getTime() - today.getTime()) / 86_400_000);
 
   if (diffDays > 7) {
-    if (lastPayment) return { kind: "paid", lastDate: lastPayment.date, nextDueDate: nextDue };
+    if (last) return { kind: "paid", lastDate: last, nextDueDate: nextDue };
     return { kind: "upcoming", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
   }
   if (diffDays >= 0) return { kind: "due-soon", lastDate: refDateStr, nextDueDate: nextDue, daysLeft: diffDays };
@@ -58,3 +67,13 @@ export const BADGE_STYLES: Record<PaymentStatus["kind"], string> = {
   upcoming:   "bg-blue-100 text-blue-700 border border-blue-200",
   paid:       "bg-green-100 text-green-700 border border-green-200",
 };
+
+export const SKIP_REASONS = [
+  "Medical emergency",
+  "Job loss / Income disruption",
+  "Business hardship",
+  "Mutual agreement",
+  "Travel / Out of town",
+  "Natural disaster",
+  "Other",
+] as const;
