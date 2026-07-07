@@ -18,6 +18,7 @@ const formSchema = z.object({
   startingBalance: z.coerce.number().positive("Must be a positive number"),
   interestRate: z.coerce.number().min(0, "Cannot be negative"),
   dateBorrowed: z.string().min(1, "Date is required"),
+  paymentIntervalDays: z.coerce.number().int().min(1, "Must be at least 1 day"),
   notes: z.string().optional(),
 });
 
@@ -40,6 +41,7 @@ export function AddLoanForm({
       startingBalance: "" as unknown as number,
       interestRate: 10,
       dateBorrowed: format(new Date(), "yyyy-MM-dd"),
+      paymentIntervalDays: 30,
       notes: "",
     },
   });
@@ -50,6 +52,7 @@ export function AddLoanForm({
       startingBalance: "" as unknown as number,
       interestRate: 10,
       dateBorrowed: format(new Date(), "yyyy-MM-dd"),
+      paymentIntervalDays: 30,
       notes: "",
     });
     onOpenChange(false);
@@ -97,19 +100,34 @@ export function AddLoanForm({
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="dateBorrowed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Borrowed</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} data-testid="input-loan-date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dateBorrowed"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date Borrowed</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} data-testid="input-loan-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="paymentIntervalDays"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment every (days)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" placeholder="30" {...field} data-testid="input-loan-interval" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

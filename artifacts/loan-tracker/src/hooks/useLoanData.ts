@@ -18,6 +18,7 @@ export interface Loan {
   currentBalance: number;
   interestRate: number;
   dateBorrowed: string;
+  paymentIntervalDays?: number;
   notes?: string;
   payments: Payment[];
 }
@@ -189,7 +190,7 @@ export function useLoanData() {
   const updateLoan = useCallback(async (
     borrowerId: string,
     loanId: string,
-    updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes">>
+    updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes" | "paymentIntervalDays">>
   ) => {
     const bi = borrowers.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
