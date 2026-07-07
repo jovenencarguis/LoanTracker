@@ -155,6 +155,34 @@ export function BorrowerDetail() {
   return (
     <div className="min-h-[100dvh] w-full max-w-[900px] mx-auto bg-background flex flex-col print:max-w-none">
 
+      {/* Screenshot-friendly clean view overlay */}
+      {screenshotLoan && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+          <div className="max-w-[680px] mx-auto px-5 pt-5 pb-10">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h1 className="text-3xl font-serif font-bold text-gray-900 leading-tight">{borrower.name}</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  {formatMoney(screenshotLoan.startingBalance)} loan · {screenshotLoan.interestRate}% interest · borrowed {formatDate(screenshotLoan.dateBorrowed)}
+                </p>
+                <p className="text-sm font-medium mt-0.5" style={{ color: screenshotLoan.currentBalance <= 0 ? "rgb(22 163 74)" : "#2C5545" }}>
+                  {screenshotLoan.currentBalance <= 0 ? "Fully settled" : `${formatMoney(screenshotLoan.currentBalance)} remaining`}
+                </p>
+              </div>
+              <button
+                onClick={() => setScreenshotLoanId(null)}
+                className="ml-4 mt-1 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-2">Payment History</h2>
+            <PaymentHistoryTable loan={screenshotLoan} onDeletePayment={() => {}} hideActions />
+          </div>
+        </div>
+      )}
+
       {/* Header — profile style */}
       <header className="relative bg-card border-b border-border">
         {/* Cover backdrop */}
