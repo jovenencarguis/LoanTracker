@@ -1,4 +1,4 @@
-import { useLoanData } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -30,7 +30,7 @@ interface PaymentLine {
 }
 
 export function Reports() {
-  const { borrowers, isLoaded } = useLoanData();
+  const { borrowers, isLoaded } = useLoanContext();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());

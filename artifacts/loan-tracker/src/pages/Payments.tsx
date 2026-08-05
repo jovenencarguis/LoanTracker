@@ -1,4 +1,5 @@
-import { useLoanData, type Borrower, type Loan } from "@/hooks/useLoanData";
+import { type Borrower, type Loan } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, ArrowRight, ChevronLeft, TrendingUp } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
@@ -13,7 +14,7 @@ type Step =
 
 export function Payments() {
   const [, setLocation] = useLocation();
-  const { borrowers, isLoaded, addPayment } = useLoanData();
+  const { borrowers, isLoaded, addPayment } = useLoanContext();
   const [step, setStep] = useState<Step>({ kind: "borrowers" });
 
   if (!isLoaded) return null;

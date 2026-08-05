@@ -1,4 +1,4 @@
-import { useLoanData } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Archive, ArchiveRestore, CalendarClock, ChevronDown, Mail, Phone, Plus, Users, Wallet } from "lucide-react";
@@ -13,7 +13,7 @@ function formatDate(d: string) {
 
 export function Borrowers() {
   const [, setLocation] = useLocation();
-  const { borrowers, isLoaded, addBorrower, setBorrowerArchived } = useLoanData();
+  const { borrowers, isLoaded, addBorrower, setBorrowerArchived } = useLoanContext();
   const [showAdd, setShowAdd] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 

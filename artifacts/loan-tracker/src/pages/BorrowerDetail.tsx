@@ -1,4 +1,5 @@
-import { useLoanData, type Loan, type SkipRecord } from "@/hooks/useLoanData";
+import { type Loan, type SkipRecord } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link, useParams, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X, SkipForward, PrinterCheck } from "lucide-react";
@@ -153,7 +154,7 @@ export function BorrowerDetail() {
   const { borrowerId } = useParams();
   const search = useSearch();
   const [, setLocation] = useLocation();
-  const { borrowers, getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, addPayment, updateLoan, deleteLoan, deletePayment, markLoanAsPaid, addSkip, deleteSkip } = useLoanData();
+  const { borrowers, getBorrower, isLoaded, updateBorrower, deleteBorrower, addLoan, addPayment, updateLoan, deleteLoan, deletePayment, markLoanAsPaid, addSkip, deleteSkip } = useLoanContext();
 
   const [showAddLoan, setShowAddLoan] = useState(false);
   const [showEditBorrower, setShowEditBorrower] = useState(false);
