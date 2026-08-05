@@ -197,6 +197,16 @@ export function BorrowerDetail() {
     hasAutoExpanded.current = true;
   }, [search, borrower]);
 
+  // Set document.title to borrower name + date when print view is open
+  // so the browser uses it as the PDF filename.
+  useEffect(() => {
+    if (!screenshotLoanId || !borrower) return;
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const prev = document.title;
+    document.title = `${borrower.name} - ${today}`;
+    return () => { document.title = prev; };
+  }, [screenshotLoanId, borrower?.name]);
+
   if (!isLoaded) return null;
   if (!borrowerId) return <NotFound />;
   if (!borrower) return <NotFound />;
