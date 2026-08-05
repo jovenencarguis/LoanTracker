@@ -1,4 +1,5 @@
-import { useLoanData, exportData, importData } from "@/hooks/useLoanData";
+import { exportData, importData } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,7 +100,7 @@ function NotificationsDialog({ open, onOpenChange, notifications }: {
 }
 
 export function Dashboard() {
-  const { borrowers, isLoaded, addBorrower } = useLoanData();
+  const { borrowers, isLoaded, addBorrower } = useLoanContext();
   const [showAdd, setShowAdd] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);

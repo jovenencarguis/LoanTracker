@@ -1,10 +1,10 @@
-import { useLoanData } from "@/hooks/useLoanData";
+import { useLoanContext } from "@/contexts/LoanDataContext";
 import { Link } from "wouter";
 import { ArrowLeft, ArrowRight, Wallet } from "lucide-react";
 import { formatMoney } from "@/lib/utils";
 
 export function Loans() {
-  const { borrowers, isLoaded } = useLoanData();
+  const { borrowers, isLoaded } = useLoanContext();
 
   if (!isLoaded) return null;
 

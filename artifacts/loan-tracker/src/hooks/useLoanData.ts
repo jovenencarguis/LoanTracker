@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { openDB, type IDBPDatabase } from "idb";
 
 export interface Payment {
@@ -151,6 +151,10 @@ export function useLoanData() {
   const [borrowers, setBorrowers] = useState<Borrower[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Always-current ref — callbacks read from here so they never capture stale state.
+  const ref = useRef<Borrower[]>([]);
+  useEffect(() => { ref.current = borrowers; }, [borrowers]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -158,10 +162,11 @@ export function useLoanData() {
         const existing = await dbRead();
         if (existing.length > 0) {
           setBorrowers(existing);
+          ref.current = existing;
         } else {
           // 2. Fall back: migrate from localStorage if anything is there
           const migrated = await migrateFromLocalStorage();
-          if (migrated) setBorrowers(migrated);
+          if (migrated) { setBorrowers(migrated); ref.current = migrated; }
         }
       } catch (e) {
         console.error("[LoanTracker] Failed to load data — data left untouched.", e);
@@ -171,81 +176,89 @@ export function useLoanData() {
     })();
   }, []);
 
+  // saveBorrowers always writes exactly what it receives — caller must build
+  // the next array from ref.current so it always has the latest snapshot.
   const saveBorrowers = useCallback(async (next: Borrower[]) => {
+    ref.current = next;
     setBorrowers(next);
     await dbWrite(next);
   }, []);
 
   const addBorrower = useCallback(async (name: string, email?: string, phone?: string) => {
     const b: Borrower = { id: crypto.randomUUID(), name, email, phone, loans: [] };
-    await saveBorrowers([...borrowers, b]);
+    await saveBorrowers([...ref.current, b]);
     return b;
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const updateBorrower = useCallback(async (id: string, name: string, email?: string, phone?: string) => {
-    await saveBorrowers(borrowers.map(b => b.id === id ? { ...b, name, email, phone } : b));
-  }, [borrowers, saveBorrowers]);
+    await saveBorrowers(ref.current.map(b => b.id === id ? { ...b, name, email, phone } : b));
+  }, [saveBorrowers]);
 
   const deleteBorrower = useCallback(async (id: string) => {
-    await saveBorrowers(borrowers.filter(b => b.id !== id));
-  }, [borrowers, saveBorrowers]);
+    await saveBorrowers(ref.current.filter(b => b.id !== id));
+  }, [saveBorrowers]);
 
   const setBorrowerArchived = useCallback(async (id: string, archived: boolean) => {
-    await saveBorrowers(borrowers.map(b => b.id === id ? { ...b, archived } : b));
-  }, [borrowers, saveBorrowers]);
+    await saveBorrowers(ref.current.map(b => b.id === id ? { ...b, archived } : b));
+  }, [saveBorrowers]);
 
   const addLoan = useCallback(async (
     borrowerId: string,
     data: Omit<Loan, "id" | "currentBalance" | "payments">
   ) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return null;
     const loan: Loan = { ...data, id: crypto.randomUUID(), currentBalance: data.startingBalance, payments: [] };
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...next[bi], loans: [...next[bi].loans, loan] };
     await saveBorrowers(next);
     return loan;
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const updateLoan = useCallback(async (
     borrowerId: string,
     loanId: string,
     updates: Partial<Pick<Loan, "interestRate" | "dateBorrowed" | "notes" | "paymentIntervalDays">>
   ) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...next[bi], loans: next[bi].loans.map(l => l.id === loanId ? { ...l, ...updates } : l) };
     await saveBorrowers(next);
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const deleteLoan = useCallback(async (borrowerId: string, loanId: string) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...next[bi], loans: next[bi].loans.filter(l => l.id !== loanId) };
     await saveBorrowers(next);
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const markLoanAsPaid = useCallback(async (borrowerId: string, loanId: string) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = {
       ...next[bi],
       loans: next[bi].loans.map(l => l.id === loanId ? { ...l, currentBalance: 0 } : l),
     };
     await saveBorrowers(next);
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const addPayment = useCallback(async (
     borrowerId: string,
     loanId: string,
     data: { date: string; repayment: number; interest?: number }
   ) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return null;
-    const borrower = borrowers[bi];
+    const borrower = cur[bi];
     const li = borrower.loans.findIndex(l => l.id === loanId);
     if (li === -1) return null;
     const loan = borrower.loans[li];
@@ -269,16 +282,17 @@ export function useLoanData() {
 
     const updatedLoans = [...borrower.loans];
     updatedLoans[li] = { ...loan, currentBalance: newBalance, payments: [...loan.payments, payment] };
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...borrower, loans: updatedLoans };
     await saveBorrowers(next);
     return payment;
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const deletePayment = useCallback(async (borrowerId: string, loanId: string, paymentId: string) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
-    const borrower = borrowers[bi];
+    const borrower = cur[bi];
     const li = borrower.loans.findIndex(l => l.id === loanId);
     if (li === -1) return;
     const loan = borrower.loans[li];
@@ -288,19 +302,20 @@ export function useLoanData() {
 
     const updatedLoans = [...borrower.loans];
     updatedLoans[li] = { ...loan, payments: updatedPayments, currentBalance };
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...borrower, loans: updatedLoans };
     await saveBorrowers(next);
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const addSkip = useCallback(async (
     borrowerId: string,
     loanId: string,
     data: { date: string; reason: string }
   ) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return null;
-    const borrower = borrowers[bi];
+    const borrower = cur[bi];
     const li = borrower.loans.findIndex(l => l.id === loanId);
     if (li === -1) return null;
     const loan = borrower.loans[li];
@@ -321,16 +336,17 @@ export function useLoanData() {
     const updatedSkips = [...(loan.skips ?? []), skip];
     const updatedLoans = [...borrower.loans];
     updatedLoans[li] = { ...loan, currentBalance: newBalance, skips: updatedSkips };
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...borrower, loans: updatedLoans };
     await saveBorrowers(next);
     return skip;
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
   const deleteSkip = useCallback(async (borrowerId: string, loanId: string, skipId: string) => {
-    const bi = borrowers.findIndex(b => b.id === borrowerId);
+    const cur = ref.current;
+    const bi = cur.findIndex(b => b.id === borrowerId);
     if (bi === -1) return;
-    const borrower = borrowers[bi];
+    const borrower = cur[bi];
     const li = borrower.loans.findIndex(l => l.id === loanId);
     if (li === -1) return;
     const loan = borrower.loans[li];
@@ -340,15 +356,15 @@ export function useLoanData() {
 
     const updatedLoans = [...borrower.loans];
     updatedLoans[li] = { ...loan, skips: updatedSkips, currentBalance };
-    const next = [...borrowers];
+    const next = [...cur];
     next[bi] = { ...borrower, loans: updatedLoans };
     await saveBorrowers(next);
-  }, [borrowers, saveBorrowers]);
+  }, [saveBorrowers]);
 
-  const getBorrower = useCallback((id: string) => borrowers.find(b => b.id === id), [borrowers]);
+  const getBorrower = useCallback((id: string) => ref.current.find(b => b.id === id), []);
   const getLoan = useCallback((borrowerId: string, loanId: string) => {
-    return borrowers.find(b => b.id === borrowerId)?.loans.find(l => l.id === loanId);
-  }, [borrowers]);
+    return ref.current.find(b => b.id === borrowerId)?.loans.find(l => l.id === loanId);
+  }, []);
 
   return {
     borrowers, isLoaded,
