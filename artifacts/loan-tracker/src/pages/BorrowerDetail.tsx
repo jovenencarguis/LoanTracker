@@ -1,7 +1,7 @@
 import { useLoanData, type Loan, type SkipRecord } from "@/hooks/useLoanData";
 import { Link, useParams, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X, SkipForward } from "lucide-react";
+import { ArrowLeft, Plus, PenLine, Trash2, Mail, Phone, FileText, ChevronDown, ChevronUp, Printer, Calendar, Percent, X, SkipForward, PrinterCheck } from "lucide-react";
 import { formatMoney, formatDate } from "@/lib/utils";
 import { getPaymentStatus, statusLabel, BADGE_STYLES } from "@/lib/loanUtils";
 import NotFound from "./not-found";
@@ -210,36 +210,76 @@ export function BorrowerDetail() {
   const avatarBg = avatarColors[borrower.name.split("").reduce((a,c) => a + c.charCodeAt(0), 0) % avatarColors.length];
   const initials = (() => { const p = borrower.name.trim().split(/\s+/); return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase(); })();
 
+  // ── Full-page clean view for screenshot / print ──────────────────────────
+  if (screenshotLoan) {
+    return (
+      <div className="bg-white w-full min-h-screen">
+        <div className="max-w-[720px] mx-auto px-6 pt-6 pb-16">
+          {/* Toolbar — hidden when printing */}
+          <div className="flex items-center justify-between mb-6 no-print">
+            <button
+              onClick={() => setScreenshotLoanId(null)}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              <X className="w-4 h-4" /> Close
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <PrinterCheck className="w-4 h-4" /> Print / Save PDF
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="mb-6 pb-5 border-b border-gray-200">
+            <h1 className="text-3xl font-serif font-bold text-gray-900 leading-tight">{borrower.name}</h1>
+            {(borrower.email || borrower.phone) && (
+              <p className="text-sm text-gray-500 mt-1">
+                {[borrower.email, borrower.phone].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+              <span><span className="font-medium">Loan amount:</span> {formatMoney(screenshotLoan.startingBalance)}</span>
+              <span><span className="font-medium">Interest rate:</span> {screenshotLoan.interestRate}% per period</span>
+              <span><span className="font-medium">Date borrowed:</span> {formatDate(screenshotLoan.dateBorrowed)}</span>
+              {screenshotLoan.paymentIntervalDays && (
+                <span><span className="font-medium">Interval:</span> every {screenshotLoan.paymentIntervalDays} days</span>
+              )}
+            </div>
+            <p className="text-sm font-semibold mt-2" style={{ color: screenshotLoan.currentBalance <= 0 ? "rgb(22 163 74)" : "#2C5545" }}>
+              {screenshotLoan.currentBalance <= 0
+                ? "Fully settled"
+                : `${formatMoney(screenshotLoan.currentBalance)} outstanding`}
+            </p>
+            {screenshotLoan.notes && (
+              <p className="mt-2 text-sm text-gray-500 italic">{screenshotLoan.notes}</p>
+            )}
+          </div>
+
+          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Payment History</h2>
+          <PaymentHistoryTable loan={screenshotLoan} onDeletePayment={() => {}} hideActions />
+
+          {/* Summary footer */}
+          <div className="mt-6 pt-4 border-t border-gray-200 flex flex-wrap gap-6 text-sm text-gray-600">
+            <span><span className="font-medium">Total payments:</span> {screenshotLoan.payments.length}</span>
+            <span>
+              <span className="font-medium">Total collected:</span>{" "}
+              {formatMoney(screenshotLoan.payments.reduce((s, p) => s + p.totalCollected, 0))}
+            </span>
+            <span>
+              <span className="font-medium">Principal repaid:</span>{" "}
+              {formatMoney(screenshotLoan.startingBalance - screenshotLoan.currentBalance)}
+            </span>
+          </div>
+          <p className="mt-4 text-xs text-gray-400">Generated {new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] w-full max-w-[900px] mx-auto bg-background flex flex-col print:max-w-none">
-
-      {/* Screenshot-friendly clean view overlay */}
-      {screenshotLoan && (
-        <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-          <div className="max-w-[680px] mx-auto px-5 pt-5 pb-10">
-            <div className="flex items-start justify-between mb-5">
-              <div>
-                <h1 className="text-3xl font-serif font-bold text-gray-900 leading-tight">{borrower.name}</h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  {formatMoney(screenshotLoan.startingBalance)} loan · {screenshotLoan.interestRate}% interest · borrowed {formatDate(screenshotLoan.dateBorrowed)}
-                </p>
-                <p className="text-sm font-medium mt-0.5" style={{ color: screenshotLoan.currentBalance <= 0 ? "rgb(22 163 74)" : "#2C5545" }}>
-                  {screenshotLoan.currentBalance <= 0 ? "Fully settled" : `${formatMoney(screenshotLoan.currentBalance)} remaining`}
-                </p>
-              </div>
-              <button
-                onClick={() => setScreenshotLoanId(null)}
-                className="ml-4 mt-1 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-2">Payment History</h2>
-            <PaymentHistoryTable loan={screenshotLoan} onDeletePayment={() => {}} hideActions />
-          </div>
-        </div>
-      )}
 
       {/* Header — profile style */}
       <header className="relative bg-card border-b border-border">
